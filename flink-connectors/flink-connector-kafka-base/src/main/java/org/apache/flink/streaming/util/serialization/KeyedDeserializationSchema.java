@@ -29,6 +29,8 @@ import java.io.IOException;
  * data sources (for example Apache Kafka) into data types (Java/Scala objects) that are
  * processed by Flink.
  *
+ * 过期的接口，通过该接口可以获取到数据到 topic 和 parttion、offset 等信息
+ *
  * @param <T> The type created by the keyed deserialization schema.
  *
  * @deprecated Use {@link KafkaDeserializationSchema}.
