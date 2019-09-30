@@ -45,7 +45,11 @@ public class GeneratedCollectorWrapper<C extends Collector<?>> extends Generated
 	}
 
 	@Override
+<<<<<<< HEAD
 	public Class<?> compile(ClassLoader classLoader) {
+=======
+	public Class<C> compile(ClassLoader classLoader) {
+>>>>>>> release-1.9
 		return clazz;
 	}
 }

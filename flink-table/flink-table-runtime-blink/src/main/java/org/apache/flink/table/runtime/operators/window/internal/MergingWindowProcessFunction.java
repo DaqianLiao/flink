@@ -22,7 +22,11 @@ import org.apache.flink.api.common.state.MapState;
 import org.apache.flink.api.common.state.MapStateDescriptor;
 import org.apache.flink.api.common.typeutils.TypeSerializer;
 import org.apache.flink.table.dataformat.BaseRow;
+<<<<<<< HEAD
 import org.apache.flink.table.runtime.generated.NamespaceAggsHandleFunction;
+=======
+import org.apache.flink.table.runtime.generated.NamespaceAggsHandleFunctionBase;
+>>>>>>> release-1.9
 import org.apache.flink.table.runtime.operators.window.Window;
 import org.apache.flink.table.runtime.operators.window.assigners.MergingWindowAssigner;
 
@@ -48,7 +52,11 @@ public class MergingWindowProcessFunction<K, W extends Window>
 
 	public MergingWindowProcessFunction(
 			MergingWindowAssigner<W> windowAssigner,
+<<<<<<< HEAD
 			NamespaceAggsHandleFunction<W> windowAggregator,
+=======
+			NamespaceAggsHandleFunctionBase<W> windowAggregator,
+>>>>>>> release-1.9
 			TypeSerializer<W> windowSerializer,
 			long allowedLateness) {
 		super(windowAssigner, windowAggregator, allowedLateness);
@@ -100,14 +108,21 @@ public class MergingWindowProcessFunction<K, W extends Window>
 	}
 
 	@Override
+<<<<<<< HEAD
 	public BaseRow getWindowAggregationResult(W window) throws Exception {
+=======
+	public void prepareAggregateAccumulatorForEmit(W window) throws Exception {
+>>>>>>> release-1.9
 		W stateWindow = mergingWindows.getStateWindow(window);
 		BaseRow acc = ctx.getWindowAccumulators(stateWindow);
 		if (acc == null) {
 			acc = windowAggregator.createAccumulators();
 		}
 		windowAggregator.setAccumulators(stateWindow, acc);
+<<<<<<< HEAD
 		return windowAggregator.getValue(window);
+=======
+>>>>>>> release-1.9
 	}
 
 	@Override

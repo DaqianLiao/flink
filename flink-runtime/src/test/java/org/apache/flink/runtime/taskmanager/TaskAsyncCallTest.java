@@ -64,15 +64,11 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.util.ArrayList;
 import java.util.Collections;
-import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
+import java.util.concurrent.Future;
 
-import static org.hamcrest.Matchers.everyItem;
-import static org.hamcrest.Matchers.greaterThanOrEqualTo;
-import static org.hamcrest.Matchers.hasSize;
-import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.isOneOf;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
@@ -92,21 +88,10 @@ public class TaskAsyncCallTest extends TestLogger {
 	private static OneShotLatch awaitLatch;
 
 	/**
-	 * Triggered when {@link CheckpointsInOrderInvokable#triggerCheckpoint(CheckpointMetaData, CheckpointOptions, boolean)}
+	 * Triggered when {@link CheckpointsInOrderInvokable#triggerCheckpointAsync(CheckpointMetaData, CheckpointOptions, boolean)}
 	 * was called {@link #numCalls} times.
 	 */
 	private static OneShotLatch triggerLatch;
-
-	/**
-	 * Triggered when {@link CheckpointsInOrderInvokable#notifyCheckpointComplete(long)}
-	 * was called {@link #numCalls} times.
-	 */
-	private static OneShotLatch notifyCheckpointCompleteLatch;
-
-	/** Triggered on {@link ContextClassLoaderInterceptingInvokable#cancel()}. */
-	private static OneShotLatch stopLatch;
-
-	private static final List<ClassLoader> classLoaders = Collections.synchronizedList(new ArrayList<>());
 
 	private ShuffleEnvironment<?, ?> shuffleEnvironment;
 
@@ -116,12 +101,8 @@ public class TaskAsyncCallTest extends TestLogger {
 
 		awaitLatch = new OneShotLatch();
 		triggerLatch = new OneShotLatch();
-		notifyCheckpointCompleteLatch = new OneShotLatch();
-		stopLatch = new OneShotLatch();
 
 		shuffleEnvironment = new NettyShuffleEnvironmentBuilder().build();
-
-		classLoaders.clear();
 	}
 
 	@After
@@ -180,6 +161,7 @@ public class TaskAsyncCallTest extends TestLogger {
 		}
 	}
 
+<<<<<<< HEAD
 	/**
 	 * Asserts that {@link AbstractInvokable#triggerCheckpoint(CheckpointMetaData, CheckpointOptions, boolean)},
 	 * and {@link AbstractInvokable#notifyCheckpointComplete(long)} are invoked by a thread whose context
@@ -209,6 +191,8 @@ public class TaskAsyncCallTest extends TestLogger {
 		}
 	}
 
+=======
+>>>>>>> release-1.9
 	private Task createTask(Class<? extends AbstractInvokable> invokableClass) throws Exception {
 		BlobCacheService blobService =
 			new BlobCacheService(mock(PermanentBlobCache.class), mock(TransientBlobCache.class));
@@ -295,15 +279,13 @@ public class TaskAsyncCallTest extends TestLogger {
 			if (error != null) {
 				// exit method prematurely due to error but make sure that the tests can finish
 				triggerLatch.trigger();
-				notifyCheckpointCompleteLatch.trigger();
-				stopLatch.trigger();
 
 				throw error;
 			}
 		}
 
 		@Override
-		public boolean triggerCheckpoint(CheckpointMetaData checkpointMetaData, CheckpointOptions checkpointOptions, boolean advanceToEndOfEventTime) {
+		public Future<Boolean> triggerCheckpointAsync(CheckpointMetaData checkpointMetaData, CheckpointOptions checkpointOptions, boolean advanceToEndOfEventTime) {
 			lastCheckpointId++;
 			if (checkpointMetaData.getCheckpointId() == lastCheckpointId) {
 				if (lastCheckpointId == numCalls) {
@@ -316,7 +298,7 @@ public class TaskAsyncCallTest extends TestLogger {
 					notifyAll();
 				}
 			}
-			return true;
+			return CompletableFuture.completedFuture(true);
 		}
 
 		@Override
@@ -330,58 +312,20 @@ public class TaskAsyncCallTest extends TestLogger {
 		}
 
 		@Override
-		public void notifyCheckpointComplete(long checkpointId) {
+		public Future<Void> notifyCheckpointCompleteAsync(long checkpointId) {
 			if (checkpointId != lastCheckpointId && this.error == null) {
 				this.error = new Exception("calls out of order");
 				synchronized (this) {
 					notifyAll();
 				}
-			} else if (lastCheckpointId == numCalls) {
-				notifyCheckpointCompleteLatch.trigger();
 			}
+			return CompletableFuture.completedFuture(null);
 		}
 	}
 
-	/**
-	 * This is an {@link AbstractInvokable} that stores the context class loader of the invoking
-	 * thread in a static field so that tests can assert on the class loader instances.
-	 *
-	 * @see #testSetsUserCodeClassLoader()
-	 */
-	public static class ContextClassLoaderInterceptingInvokable extends CheckpointsInOrderInvokable {
-
-		public ContextClassLoaderInterceptingInvokable(Environment environment) {
-			super(environment);
-		}
-
-		@Override
-		public boolean triggerCheckpoint(CheckpointMetaData checkpointMetaData, CheckpointOptions checkpointOptions, boolean advanceToEndOfEventTime) {
-			classLoaders.add(Thread.currentThread().getContextClassLoader());
-
-			return super.triggerCheckpoint(checkpointMetaData, checkpointOptions, advanceToEndOfEventTime);
-		}
-
-		@Override
-		public void notifyCheckpointComplete(long checkpointId) {
-			classLoaders.add(Thread.currentThread().getContextClassLoader());
-
-			super.notifyCheckpointComplete(checkpointId);
-		}
-
-		@Override
-		public void cancel() {
-			stopLatch.trigger();
-		}
-
-	}
-
-	/**
-	 * A {@link ClassLoader} that delegates everything to {@link ClassLoader#getSystemClassLoader()}.
-	 *
-	 * @see #testSetsUserCodeClassLoader()
-	 */
+	/** A {@link ClassLoader} that delegates everything to {@link ClassLoader#getSystemClassLoader()}. */
 	private static class TestUserCodeClassLoader extends ClassLoader {
-		public TestUserCodeClassLoader() {
+		TestUserCodeClassLoader() {
 			super(ClassLoader.getSystemClassLoader());
 		}
 	}

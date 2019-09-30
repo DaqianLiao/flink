@@ -22,6 +22,10 @@ import com.google.common.collect.ImmutableMap
 import org.apache.calcite.rel.`type`.RelDataType
 import org.apache.calcite.rel.{RelCollation, RelNode}
 import org.apache.calcite.rex.RexNode
+<<<<<<< HEAD
+=======
+import org.apache.calcite.util.ImmutableBitSet
+>>>>>>> release-1.9
 
 import java.util
 
@@ -37,6 +41,10 @@ case class MatchRecognize(
   after: RexNode,
   subsets: ImmutableMap[String, util.SortedSet[String]],
   allRows: Boolean,
+<<<<<<< HEAD
   partitionKeys: util.List[RexNode],
+=======
+  partitionKeys: ImmutableBitSet,
+>>>>>>> release-1.9
   orderKeys: RelCollation,
   interval: RexNode)

@@ -47,6 +47,10 @@ import org.apache.calcite.rel.core.AggregateCall
 import org.apache.calcite.rex._
 import org.apache.calcite.sql.SqlAggFunction
 import org.apache.calcite.tools.RelBuilder
+<<<<<<< HEAD
+=======
+import org.apache.calcite.util.ImmutableBitSet
+>>>>>>> release-1.9
 
 import java.lang.{Long => JLong}
 import java.util
@@ -200,7 +204,11 @@ class MatchCodeGenerator(
     */
   def generateOneRowPerMatchExpression(
       returnType: RowType,
+<<<<<<< HEAD
       partitionKeys: util.List[RexNode],
+=======
+      partitionKeys: ImmutableBitSet,
+>>>>>>> release-1.9
       measures: util.Map[String, RexNode])
     : PatternProcessFunctionRunner = {
     val resultExpression = generateOneRowPerMatchExpression(
@@ -296,7 +304,11 @@ class MatchCodeGenerator(
   }
 
   private def generateOneRowPerMatchExpression(
+<<<<<<< HEAD
       partitionKeys: java.util.List[RexNode],
+=======
+      partitionKeys: ImmutableBitSet,
+>>>>>>> release-1.9
       measures: java.util.Map[String, RexNode],
       returnType: RowType): GeneratedExpression = {
 
@@ -304,11 +316,20 @@ class MatchCodeGenerator(
     // 1) the partition columns;
     // 2) the columns defined in the measures clause.
     val resultExprs =
+<<<<<<< HEAD
     partitionKeys.asScala.map { case inputRef: RexInputRef =>
       generatePartitionKeyAccess(inputRef)
     } ++ returnType.getFieldNames.filter(measures.containsKey(_)).map { fieldName =>
       generateExpression(measures.get(fieldName))
     }
+=======
+    partitionKeys.toArray.map(generatePartitionKeyAccess) ++
+      returnType.getFieldNames
+        .filter(measures.containsKey(_))
+        .map { fieldName =>
+          generateExpression(measures.get(fieldName))
+        }
+>>>>>>> release-1.9
 
     val resultCodeGenerator = new ExprCodeGenerator(ctx, nullableInput)
       .bindInput(input1Type, inputTerm = input1Term)
@@ -398,16 +419,27 @@ class MatchCodeGenerator(
   /**
     * Extracts partition keys from any element of the match
     *
+<<<<<<< HEAD
     * @param partitionKey partition key to be extracted
     * @return generated code for the given key
     */
   private def generatePartitionKeyAccess(partitionKey: RexInputRef): GeneratedExpression = {
+=======
+    * @param partitionKeyIdx partition key index
+    * @return generated code for the given key
+    */
+  private def generatePartitionKeyAccess(partitionKeyIdx: Int): GeneratedExpression = {
+>>>>>>> release-1.9
     val keyRow = generateKeyRow()
     GenerateUtils.generateFieldAccess(
       ctx,
       keyRow.resultType,
       keyRow.resultTerm,
+<<<<<<< HEAD
       partitionKey.getIndex
+=======
+      partitionKeyIdx
+>>>>>>> release-1.9
     )
   }
 

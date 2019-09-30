@@ -94,7 +94,11 @@ DataStream<SomeObject> dataStream = (...);
 
 SerializationSchema<SomeObject> serializationSchema = (...);
 SinkFunction<SomeObject> pubsubSink = PubSubSink.newBuilder()
+<<<<<<< HEAD
                                                 .withDeserializationSchema(deserializer)
+=======
+                                                .withSerializationSchema(serializationSchema)
+>>>>>>> release-1.9
                                                 .withProjectName("project")
                                                 .withSubscriptionName("subscription")
                                                 .build()
@@ -120,11 +124,16 @@ The following example shows how you would create a source to read messages from 
 <div class="codetabs" markdown="1">
 <div data-lang="java" markdown="1">
 {% highlight java %}
+<<<<<<< HEAD
+=======
+String hostAndPort = "localhost:1234";
+>>>>>>> release-1.9
 DeserializationSchema<SomeObject> deserializationSchema = (...);
 SourceFunction<SomeObject> pubsubSource = PubSubSource.newBuilder()
                                                       .withDeserializationSchema(deserializationSchema)
                                                       .withProjectName("my-fake-project")
                                                       .withSubscriptionName("subscription")
+<<<<<<< HEAD
                                                       .withPubSubSubscriberFactory(new PubSubSubscriberFactoryForEmulator("localhost:1234", "my-fake-project", "subscription", 10, Duration.ofSeconds(15), 100))
                                                       .build();
 SinkFunction<SomeObject> pubsubSink = PubSubSink.newBuilder()
@@ -132,6 +141,16 @@ SinkFunction<SomeObject> pubsubSink = PubSubSink.newBuilder()
                                                 .withProjectName("my-fake-project")
                                                 .withSubscriptionName("subscription")
                                                 .withHostAndPortForEmulator(getPubSubHostPort())
+=======
+                                                      .withPubSubSubscriberFactory(new PubSubSubscriberFactoryForEmulator(hostAndPort, "my-fake-project", "subscription", 10, Duration.ofSeconds(15), 100))
+                                                      .build();
+SerializationSchema<SomeObject> serializationSchema = (...);
+SinkFunction<SomeObject> pubsubSink = PubSubSink.newBuilder()
+                                                .withSerializationSchema(serializationSchema)
+                                                .withProjectName("my-fake-project")
+                                                .withSubscriptionName("subscription")
+                                                .withHostAndPortForEmulator(hostAndPort)
+>>>>>>> release-1.9
                                                 .build()
 
 StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();

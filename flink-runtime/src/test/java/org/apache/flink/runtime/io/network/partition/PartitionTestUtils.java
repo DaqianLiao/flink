@@ -31,7 +31,11 @@ import org.hamcrest.Matchers;
 
 import java.io.IOException;
 
+<<<<<<< HEAD
 import static org.apache.flink.runtime.io.network.buffer.BufferBuilderTestUtils.createFilledBufferConsumer;
+=======
+import static org.apache.flink.runtime.io.network.buffer.BufferBuilderTestUtils.createFilledFinishedBufferConsumer;
+>>>>>>> release-1.9
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 
@@ -112,16 +116,23 @@ public enum PartitionTestUtils {
 			true);
 	}
 
+<<<<<<< HEAD
 	public static ResultPartitionDeploymentDescriptor createPartitionDeploymentDescriptor() {
 		return createPartitionDeploymentDescriptor(ResultPartitionType.BLOCKING);
 	}
 
+=======
+>>>>>>> release-1.9
 	public static void writeBuffers(
 			ResultPartitionWriter partition,
 			int numberOfBuffers,
 			int bufferSize) throws IOException {
 		for (int i = 0; i < numberOfBuffers; i++) {
+<<<<<<< HEAD
 			partition.addBufferConsumer(createFilledBufferConsumer(bufferSize, bufferSize), 0);
+=======
+			partition.addBufferConsumer(createFilledFinishedBufferConsumer(bufferSize), 0);
+>>>>>>> release-1.9
 		}
 		partition.finish();
 	}

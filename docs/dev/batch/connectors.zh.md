@@ -26,6 +26,7 @@ under the License.
 {:toc}
 
 ## Reading from and writing to file systems
+<<<<<<< HEAD
 
 The Apache Flink project supports multiple [file systems]({{ site.baseurl }}/ops/filesystems/index.html) that can be used as backing stores
 for input and output connectors. 
@@ -62,7 +63,11 @@ For Alluxio support add the following entry into the `core-site.xml` file:
   <value>alluxio.hadoop.FileSystem</value>
 </property>
 {% endhighlight %}
+=======
+>>>>>>> release-1.9
 
+The Apache Flink project supports multiple [file systems]({{ site.baseurl }}/ops/filesystems/index.html) that can be used as backing stores
+for input and output connectors. 
 
 ## Connecting to other systems using Input/OutputFormat wrappers for Hadoop
 

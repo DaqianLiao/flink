@@ -19,116 +19,30 @@
 
 package org.apache.flink.runtime.scheduler;
 
-import org.apache.flink.api.common.JobID;
-import org.apache.flink.api.common.restartstrategy.RestartStrategies;
 import org.apache.flink.api.common.time.Time;
-import org.apache.flink.configuration.CheckpointingOptions;
 import org.apache.flink.configuration.Configuration;
-import org.apache.flink.core.io.InputSplit;
-import org.apache.flink.queryablestate.KvStateID;
-import org.apache.flink.runtime.JobException;
-import org.apache.flink.runtime.accumulators.AccumulatorSnapshot;
 import org.apache.flink.runtime.blob.BlobWriter;
-import org.apache.flink.runtime.checkpoint.CheckpointCoordinator;
-import org.apache.flink.runtime.checkpoint.CheckpointMetrics;
 import org.apache.flink.runtime.checkpoint.CheckpointRecoveryFactory;
-import org.apache.flink.runtime.checkpoint.CompletedCheckpoint;
-import org.apache.flink.runtime.checkpoint.TaskStateSnapshot;
-import org.apache.flink.runtime.client.JobExecutionException;
-import org.apache.flink.runtime.concurrent.ComponentMainThreadExecutor;
-import org.apache.flink.runtime.concurrent.FutureUtils;
-import org.apache.flink.runtime.execution.ExecutionState;
-import org.apache.flink.runtime.executiongraph.ArchivedExecutionGraph;
-import org.apache.flink.runtime.executiongraph.Execution;
-import org.apache.flink.runtime.executiongraph.ExecutionAttemptID;
 import org.apache.flink.runtime.executiongraph.ExecutionGraph;
-import org.apache.flink.runtime.executiongraph.ExecutionGraphBuilder;
-import org.apache.flink.runtime.executiongraph.ExecutionGraphException;
-import org.apache.flink.runtime.executiongraph.ExecutionJobVertex;
-import org.apache.flink.runtime.executiongraph.IntermediateResult;
-import org.apache.flink.runtime.executiongraph.JobStatusListener;
-import org.apache.flink.runtime.executiongraph.restart.RestartStrategy;
 import org.apache.flink.runtime.executiongraph.restart.RestartStrategyFactory;
-import org.apache.flink.runtime.executiongraph.restart.RestartStrategyResolving;
 import org.apache.flink.runtime.io.network.partition.PartitionTracker;
-import org.apache.flink.runtime.io.network.partition.ResultPartitionID;
-import org.apache.flink.runtime.jobgraph.IntermediateDataSetID;
 import org.apache.flink.runtime.jobgraph.JobGraph;
-import org.apache.flink.runtime.jobgraph.JobStatus;
-import org.apache.flink.runtime.jobgraph.JobVertexID;
-import org.apache.flink.runtime.jobgraph.SavepointRestoreSettings;
-import org.apache.flink.runtime.jobmanager.PartitionProducerDisposedException;
-import org.apache.flink.runtime.jobmaster.SerializedInputSplit;
 import org.apache.flink.runtime.jobmaster.slotpool.SlotProvider;
-import org.apache.flink.runtime.messages.FlinkJobNotFoundException;
-import org.apache.flink.runtime.messages.checkpoint.AcknowledgeCheckpoint;
-import org.apache.flink.runtime.messages.checkpoint.DeclineCheckpoint;
-import org.apache.flink.runtime.messages.webmonitor.JobDetails;
 import org.apache.flink.runtime.metrics.groups.JobManagerJobMetricGroup;
-import org.apache.flink.runtime.query.KvStateLocation;
-import org.apache.flink.runtime.query.KvStateLocationRegistry;
-import org.apache.flink.runtime.query.UnknownKvStateLocation;
 import org.apache.flink.runtime.rest.handler.legacy.backpressure.BackPressureStatsTracker;
-import org.apache.flink.runtime.rest.handler.legacy.backpressure.OperatorBackPressureStats;
 import org.apache.flink.runtime.shuffle.ShuffleMaster;
-import org.apache.flink.runtime.state.KeyGroupRange;
-import org.apache.flink.runtime.taskmanager.TaskExecutionState;
-import org.apache.flink.runtime.taskmanager.TaskManagerLocation;
-import org.apache.flink.runtime.webmonitor.WebMonitorUtils;
-import org.apache.flink.util.FlinkException;
-import org.apache.flink.util.InstantiationUtil;
-import org.apache.flink.util.function.FunctionUtils;
 
 import org.slf4j.Logger;
 
-import java.io.IOException;
-import java.net.InetSocketAddress;
-import java.util.Optional;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionException;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ScheduledExecutorService;
-
-import static org.apache.flink.util.Preconditions.checkNotNull;
 
 /**
  * A scheduler that delegates to the scheduling logic in the {@link ExecutionGraph}.
  *
  * @see ExecutionGraph#scheduleForExecution()
  */
-public class LegacyScheduler implements SchedulerNG {
-
-	private final Logger log;
-
-	private final JobGraph jobGraph;
-
-	private final ExecutionGraph executionGraph;
-
-	private final BackPressureStatsTracker backPressureStatsTracker;
-
-	private final Executor ioExecutor;
-
-	private final Configuration jobMasterConfiguration;
-
-	private final SlotProvider slotProvider;
-
-	private final ScheduledExecutorService futureExecutor;
-
-	private final ClassLoader userCodeLoader;
-
-	private final CheckpointRecoveryFactory checkpointRecoveryFactory;
-
-	private final Time rpcTimeout;
-
-	private final RestartStrategy restartStrategy;
-
-	private final BlobWriter blobWriter;
-
-	private final Time slotRequestTimeout;
-
-	private ComponentMainThreadExecutor mainThreadExecutor = new ComponentMainThreadExecutor.DummyComponentMainThreadExecutor(
-		"LegacyScheduler is not initialized with proper main thread executor. " +
-			"Call to LegacyScheduler.setMainThreadExecutor(...) required.");
+public class LegacyScheduler extends SchedulerBase {
 
 	public LegacyScheduler(
 			final Logger log,
@@ -148,116 +62,28 @@ public class LegacyScheduler implements SchedulerNG {
 			final ShuffleMaster<?> shuffleMaster,
 			final PartitionTracker partitionTracker) throws Exception {
 
-		this.log = checkNotNull(log);
-		this.jobGraph = checkNotNull(jobGraph);
-		this.backPressureStatsTracker = checkNotNull(backPressureStatsTracker);
-		this.ioExecutor = checkNotNull(ioExecutor);
-		this.jobMasterConfiguration = checkNotNull(jobMasterConfiguration);
-		this.slotProvider = checkNotNull(slotProvider);
-		this.futureExecutor = checkNotNull(futureExecutor);
-		this.userCodeLoader = checkNotNull(userCodeLoader);
-		this.checkpointRecoveryFactory = checkNotNull(checkpointRecoveryFactory);
-		this.rpcTimeout = checkNotNull(rpcTimeout);
-
-		final RestartStrategies.RestartStrategyConfiguration restartStrategyConfiguration =
-			jobGraph.getSerializedExecutionConfig()
-				.deserializeValue(userCodeLoader)
-				.getRestartStrategy();
-
-		this.restartStrategy = RestartStrategyResolving.resolve(restartStrategyConfiguration,
-			restartStrategyFactory,
-			jobGraph.isCheckpointingEnabled());
-
-		log.info("Using restart strategy {} for {} ({}).", this.restartStrategy, jobGraph.getName(), jobGraph.getJobID());
-
-		this.blobWriter = checkNotNull(blobWriter);
-		this.slotRequestTimeout = checkNotNull(slotRequestTimeout);
-
-		this.executionGraph = createAndRestoreExecutionGraph(jobManagerJobMetricGroup, checkNotNull(shuffleMaster), checkNotNull(partitionTracker));
-	}
-
-	private ExecutionGraph createAndRestoreExecutionGraph(
-			JobManagerJobMetricGroup currentJobManagerJobMetricGroup,
-			ShuffleMaster<?> shuffleMaster,
-			PartitionTracker partitionTracker) throws Exception {
-
-		ExecutionGraph newExecutionGraph = createExecutionGraph(currentJobManagerJobMetricGroup, shuffleMaster, partitionTracker);
-
-		final CheckpointCoordinator checkpointCoordinator = newExecutionGraph.getCheckpointCoordinator();
-
-		if (checkpointCoordinator != null) {
-			// check whether we find a valid checkpoint
-			if (!checkpointCoordinator.restoreLatestCheckpointedState(
-				newExecutionGraph.getAllVertices(),
-				false,
-				false)) {
-
-				// check whether we can restore from a savepoint
-				tryRestoreExecutionGraphFromSavepoint(newExecutionGraph, jobGraph.getSavepointRestoreSettings());
-			}
-		}
-
-		return newExecutionGraph;
-	}
-
-	private ExecutionGraph createExecutionGraph(
-			JobManagerJobMetricGroup currentJobManagerJobMetricGroup,
-			ShuffleMaster<?> shuffleMaster,
-			final PartitionTracker partitionTracker) throws JobExecutionException, JobException {
-		return ExecutionGraphBuilder.buildGraph(
-			null,
+		super(
+			log,
 			jobGraph,
-			jobMasterConfiguration,
-			futureExecutor,
+			backPressureStatsTracker,
 			ioExecutor,
+			jobMasterConfiguration,
 			slotProvider,
+			futureExecutor,
 			userCodeLoader,
 			checkpointRecoveryFactory,
 			rpcTimeout,
-			restartStrategy,
-			currentJobManagerJobMetricGroup,
+			restartStrategyFactory,
 			blobWriter,
+			jobManagerJobMetricGroup,
 			slotRequestTimeout,
-			log,
 			shuffleMaster,
 			partitionTracker);
 	}
 
-	/**
-	 * Tries to restore the given {@link ExecutionGraph} from the provided {@link SavepointRestoreSettings}.
-	 *
-	 * @param executionGraphToRestore {@link ExecutionGraph} which is supposed to be restored
-	 * @param savepointRestoreSettings {@link SavepointRestoreSettings} containing information about the savepoint to restore from
-	 * @throws Exception if the {@link ExecutionGraph} could not be restored
-	 */
-	private void tryRestoreExecutionGraphFromSavepoint(ExecutionGraph executionGraphToRestore, SavepointRestoreSettings savepointRestoreSettings) throws Exception {
-		if (savepointRestoreSettings.restoreSavepoint()) {
-			final CheckpointCoordinator checkpointCoordinator = executionGraphToRestore.getCheckpointCoordinator();
-			if (checkpointCoordinator != null) {
-				checkpointCoordinator.restoreSavepoint(
-					savepointRestoreSettings.getRestorePath(),
-					savepointRestoreSettings.allowNonRestoredState(),
-					executionGraphToRestore.getAllVertices(),
-					userCodeLoader);
-			}
-		}
-	}
-
 	@Override
-	public void setMainThreadExecutor(final ComponentMainThreadExecutor mainThreadExecutor) {
-		this.mainThreadExecutor = checkNotNull(mainThreadExecutor);
-		executionGraph.start(mainThreadExecutor);
-	}
-
-	@Override
-	public void registerJobStatusListener(final JobStatusListener jobStatusListener) {
-		executionGraph.registerJobStatusListener(jobStatusListener);
-	}
-
-	@Override
-	public void startScheduling() {
-		mainThreadExecutor.assertRunningInMainThread();
-
+	protected void startSchedulingInternal() {
+		final ExecutionGraph executionGraph = getExecutionGraph();
 		try {
 			executionGraph.scheduleForExecution();
 		}
@@ -265,6 +91,7 @@ public class LegacyScheduler implements SchedulerNG {
 			executionGraph.failGlobal(t);
 		}
 	}
+<<<<<<< HEAD
 
 	@Override
 	public void suspend(Throwable cause) {
@@ -642,4 +469,6 @@ public class LegacyScheduler implements SchedulerNG {
 			.map(TaskManagerLocation::toString)
 			.orElse("Unknown location");
 	}
+=======
+>>>>>>> release-1.9
 }

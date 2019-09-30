@@ -19,12 +19,21 @@
 package org.apache.flink.table.planner.functions.aggfunctions;
 
 import org.apache.flink.table.api.DataTypes;
+<<<<<<< HEAD
+=======
+import org.apache.flink.table.expressions.CallExpression;
+>>>>>>> release-1.9
 import org.apache.flink.table.expressions.Expression;
 import org.apache.flink.table.expressions.UnresolvedReferenceExpression;
 import org.apache.flink.table.types.DataType;
 import org.apache.flink.table.types.logical.DecimalType;
 import org.apache.flink.table.types.logical.TimeType;
 
+<<<<<<< HEAD
+=======
+import java.util.Arrays;
+
+>>>>>>> release-1.9
 import static org.apache.flink.table.expressions.utils.ApiExpressionUtils.unresolvedRef;
 import static org.apache.flink.table.planner.expressions.ExpressionBuilder.equalTo;
 import static org.apache.flink.table.planner.expressions.ExpressionBuilder.greaterThan;
@@ -34,7 +43,12 @@ import static org.apache.flink.table.planner.expressions.ExpressionBuilder.minus
 import static org.apache.flink.table.planner.expressions.ExpressionBuilder.nullOf;
 import static org.apache.flink.table.planner.expressions.ExpressionBuilder.or;
 import static org.apache.flink.table.planner.expressions.ExpressionBuilder.plus;
+<<<<<<< HEAD
 import static org.apache.flink.table.planner.expressions.ExpressionBuilder.throwException;
+=======
+import static org.apache.flink.table.planner.expressions.ExpressionBuilder.typeLiteral;
+import static org.apache.flink.table.planner.functions.InternalFunctionDefinitions.THROW_EXCEPTION;
+>>>>>>> release-1.9
 
 /**
  * Base class for built-in single value aggregate function.
@@ -118,6 +132,15 @@ public abstract class SingleValueAggFunction extends DeclarativeAggregateFunctio
 		return value;
 	}
 
+<<<<<<< HEAD
+=======
+	private static Expression throwException(String msg, DataType type) {
+		// it is the internal function without catalog.
+		// so it can not be find in any catalog or built-in functions.
+		return new CallExpression(THROW_EXCEPTION, Arrays.asList(literal(msg), typeLiteral(type)), type);
+	}
+
+>>>>>>> release-1.9
 	/**
 	 * Built-in byte single value aggregate function.
 	 */

@@ -45,13 +45,20 @@ import org.apache.flink.runtime.rest.messages.JobIdsWithStatusesOverviewHeaders;
 import org.apache.flink.runtime.rest.messages.JobMessageParameters;
 import org.apache.flink.runtime.rest.messages.JobVertexDetailsHeaders;
 import org.apache.flink.runtime.rest.messages.JobVertexDetailsInfo;
+<<<<<<< HEAD
 import org.apache.flink.runtime.rest.messages.JobVertexDetailsInfo.VertexTaskDetail;
+=======
+>>>>>>> release-1.9
 import org.apache.flink.runtime.rest.messages.JobVertexMessageParameters;
 import org.apache.flink.runtime.rest.messages.MessageHeaders;
 import org.apache.flink.runtime.rest.messages.MessageParameters;
 import org.apache.flink.runtime.rest.messages.ResponseBody;
 import org.apache.flink.runtime.rest.messages.job.JobDetailsHeaders;
 import org.apache.flink.runtime.rest.messages.job.JobDetailsInfo;
+<<<<<<< HEAD
+=======
+import org.apache.flink.runtime.rest.messages.job.SubtaskExecutionAttemptDetailsInfo;
+>>>>>>> release-1.9
 import org.apache.flink.runtime.util.ExecutorThreadFactory;
 import org.apache.flink.test.util.TestEnvironment;
 import org.apache.flink.util.Collector;
@@ -604,7 +611,11 @@ public class BatchFineGrainedRecoveryITCase extends TestLogger {
 		private final String name;
 		private final int attempt;
 
+<<<<<<< HEAD
 		private InternalTaskInfo(String name, VertexTaskDetail vertexTaskDetail) {
+=======
+		private InternalTaskInfo(String name, SubtaskExecutionAttemptDetailsInfo vertexTaskDetail) {
+>>>>>>> release-1.9
 			this.name = name;
 			this.attempt = vertexTaskDetail.getAttempt();
 		}

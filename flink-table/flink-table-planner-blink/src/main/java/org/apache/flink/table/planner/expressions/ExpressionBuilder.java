@@ -20,6 +20,11 @@ package org.apache.flink.table.planner.expressions;
 
 import org.apache.flink.table.expressions.Expression;
 import org.apache.flink.table.expressions.TypeLiteralExpression;
+<<<<<<< HEAD
+=======
+import org.apache.flink.table.expressions.UnresolvedCallExpression;
+import org.apache.flink.table.expressions.ValueLiteralExpression;
+>>>>>>> release-1.9
 import org.apache.flink.table.expressions.utils.ApiExpressionUtils;
 import org.apache.flink.table.functions.FunctionDefinition;
 import org.apache.flink.table.types.DataType;
@@ -42,13 +47,17 @@ import static org.apache.flink.table.functions.BuiltInFunctionDefinitions.OR;
 import static org.apache.flink.table.functions.BuiltInFunctionDefinitions.PLUS;
 import static org.apache.flink.table.functions.BuiltInFunctionDefinitions.REINTERPRET_CAST;
 import static org.apache.flink.table.functions.BuiltInFunctionDefinitions.TIMES;
+<<<<<<< HEAD
 import static org.apache.flink.table.planner.functions.InternalFunctionDefinitions.THROW_EXCEPTION;
+=======
+>>>>>>> release-1.9
 
 /**
  * Builder for {@link Expression}s.
  */
 public class ExpressionBuilder {
 
+<<<<<<< HEAD
 	public static Expression nullOf(DataType type) {
 		return literal(null, type);
 	}
@@ -128,6 +137,87 @@ public class ExpressionBuilder {
 
 	public static Expression reinterpretCast(Expression child, Expression type,
 			boolean checkOverflow) {
+=======
+	public static ValueLiteralExpression nullOf(DataType type) {
+		return literal(null, type);
+	}
+
+	public static ValueLiteralExpression literal(Object value) {
+		return ApiExpressionUtils.valueLiteral(value);
+	}
+
+	public static ValueLiteralExpression literal(Object value, DataType type) {
+		return ApiExpressionUtils.valueLiteral(value, type);
+	}
+
+	public static UnresolvedCallExpression call(FunctionDefinition functionDefinition, Expression... args) {
+		return ApiExpressionUtils.unresolvedCall(functionDefinition, args);
+	}
+
+	public static UnresolvedCallExpression call(FunctionDefinition functionDefinition, List<Expression> args) {
+		return ApiExpressionUtils.unresolvedCall(functionDefinition, args.toArray(new Expression[0]));
+	}
+
+	public static UnresolvedCallExpression and(Expression arg1, Expression arg2) {
+		return call(AND, arg1, arg2);
+	}
+
+	public static UnresolvedCallExpression or(Expression arg1, Expression arg2) {
+		return call(OR, arg1, arg2);
+	}
+
+	public static UnresolvedCallExpression not(Expression arg) {
+		return call(NOT, arg);
+	}
+
+	public static UnresolvedCallExpression isNull(Expression input) {
+		return call(IS_NULL, input);
+	}
+
+	public static UnresolvedCallExpression ifThenElse(Expression condition, Expression ifTrue,
+		Expression ifFalse) {
+		return call(IF, condition, ifTrue, ifFalse);
+	}
+
+	public static UnresolvedCallExpression plus(Expression input1, Expression input2) {
+		return call(PLUS, input1, input2);
+	}
+
+	public static UnresolvedCallExpression minus(Expression input1, Expression input2) {
+		return call(MINUS, input1, input2);
+	}
+
+	public static UnresolvedCallExpression div(Expression input1, Expression input2) {
+		return call(DIVIDE, input1, input2);
+	}
+
+	public static UnresolvedCallExpression times(Expression input1, Expression input2) {
+		return call(TIMES, input1, input2);
+	}
+
+	public static UnresolvedCallExpression mod(Expression input1, Expression input2) {
+		return call(MOD, input1, input2);
+	}
+
+	public static UnresolvedCallExpression equalTo(Expression input1, Expression input2) {
+		return call(EQUALS, input1, input2);
+	}
+
+	public static UnresolvedCallExpression lessThan(Expression input1, Expression input2) {
+		return call(LESS_THAN, input1, input2);
+	}
+
+	public static UnresolvedCallExpression greaterThan(Expression input1, Expression input2) {
+		return call(GREATER_THAN, input1, input2);
+	}
+
+	public static UnresolvedCallExpression cast(Expression child, Expression type) {
+		return call(CAST, child, type);
+	}
+
+	public static UnresolvedCallExpression reinterpretCast(Expression child, Expression type,
+		boolean checkOverflow) {
+>>>>>>> release-1.9
 		return call(REINTERPRET_CAST, child, type, literal(checkOverflow));
 	}
 
@@ -135,6 +225,7 @@ public class ExpressionBuilder {
 		return ApiExpressionUtils.typeLiteral(type);
 	}
 
+<<<<<<< HEAD
 	public static Expression concat(Expression input1, Expression input2) {
 		return call(CONCAT, input1, input2);
 	}
@@ -142,4 +233,9 @@ public class ExpressionBuilder {
 	public static Expression throwException(String msg, DataType type) {
 		return call(THROW_EXCEPTION, literal(msg), typeLiteral(type));
 	}
+=======
+	public static UnresolvedCallExpression concat(Expression input1, Expression input2) {
+		return call(CONCAT, input1, input2);
+	}
+>>>>>>> release-1.9
 }

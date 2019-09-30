@@ -18,10 +18,15 @@
 
 package org.apache.flink.table.runtime.generated;
 
+<<<<<<< HEAD
 import org.apache.flink.api.common.functions.AggregateFunction;
 import org.apache.flink.api.common.functions.Function;
 import org.apache.flink.table.dataformat.BaseRow;
 import org.apache.flink.table.runtime.dataview.StateDataViewStore;
+=======
+import org.apache.flink.table.dataformat.BaseRow;
+import org.apache.flink.table.functions.AggregateFunction;
+>>>>>>> release-1.9
 
 /**
  * The base class for handling aggregate functions.
@@ -30,6 +35,7 @@ import org.apache.flink.table.runtime.dataview.StateDataViewStore;
  *
  * <p>It is the entry point for aggregate operators to operate all {@link AggregateFunction}s.
  */
+<<<<<<< HEAD
 public interface AggsHandleFunction extends Function {
 
 	/**
@@ -83,12 +89,16 @@ public interface AggsHandleFunction extends Function {
 	 * @return a row of accumulators which contains the aggregated results
 	 */
 	BaseRow createAccumulators() throws Exception;
+=======
+public interface AggsHandleFunction extends AggsHandleFunctionBase {
+>>>>>>> release-1.9
 
 	/**
 	 * Gets the result of the aggregation from the current accumulators.
 	 * @return the final result (saved in a row) of the current accumulators.
 	 */
 	BaseRow getValue() throws Exception;
+<<<<<<< HEAD
 
 	/**
 	 * Cleanup for the retired accumulators state.
@@ -101,4 +111,6 @@ public interface AggsHandleFunction extends Function {
 	 */
 	void close() throws Exception;
 
+=======
+>>>>>>> release-1.9
 }

@@ -19,10 +19,15 @@
 package org.apache.flink.table.planner.catalog;
 
 import org.apache.flink.annotation.Internal;
+<<<<<<< HEAD
 import org.apache.flink.table.api.TableException;
 import org.apache.flink.table.catalog.Catalog;
 import org.apache.flink.table.catalog.CatalogManager;
 import org.apache.flink.table.catalog.ExternalCatalog;
+=======
+import org.apache.flink.table.catalog.Catalog;
+import org.apache.flink.table.catalog.CatalogManager;
+>>>>>>> release-1.9
 
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.schema.Schema;
@@ -39,8 +44,11 @@ import java.util.Set;
  *
  * <p>The mapping for {@link Catalog}s is modeled as a strict two-level reference structure for Flink in Calcite,
  * the full path of objects is of format [catalog_name].[db_name].[meta-object_name].
+<<<<<<< HEAD
  *
  * <p>It also supports {@link ExternalCatalog}s. An external catalog maps 1:1 to the Calcite's schema.
+=======
+>>>>>>> release-1.9
  */
 @Internal
 public class CatalogManagerCalciteSchema extends FlinkSchema {
@@ -66,6 +74,7 @@ public class CatalogManagerCalciteSchema extends FlinkSchema {
 
 	@Override
 	public Schema getSubSchema(String name) {
+<<<<<<< HEAD
 		Schema schema = catalogManager.getCatalog(name)
 			.map(catalog -> new CatalogCalciteSchema(name, catalog, isStreamingMode))
 			.orElse(null);
@@ -74,6 +83,11 @@ public class CatalogManagerCalciteSchema extends FlinkSchema {
 			throw new TableException("ExternalCatalog is deprecated and is not supported in blink planner");
 		}
 		return schema;
+=======
+		return catalogManager.getCatalog(name)
+			.map(catalog -> new CatalogCalciteSchema(name, catalog, isStreamingMode))
+			.orElse(null);
+>>>>>>> release-1.9
 	}
 
 	@Override

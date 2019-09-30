@@ -130,9 +130,15 @@ object FlinkBatchRuleSets {
     */
   private val FILTER_RULES: RuleSet = RuleSets.ofList(
     // push a filter into a join
+<<<<<<< HEAD
     FlinkFilterJoinRule.FILTER_ON_JOIN,
     // push filter into the children of a join
     FlinkFilterJoinRule.JOIN,
+=======
+    FilterJoinRule.FILTER_ON_JOIN,
+    // push filter into the children of a join
+    FilterJoinRule.JOIN,
+>>>>>>> release-1.9
     // push filter through an aggregation
     FilterAggregateTransposeRule.INSTANCE,
     // push a filter past a project
@@ -223,7 +229,11 @@ object FlinkBatchRuleSets {
 
   val JOIN_REORDER_PERPARE_RULES: RuleSet = RuleSets.ofList(
     // merge join to MultiJoin
+<<<<<<< HEAD
     FlinkJoinToMultiJoinRule.INSTANCE,
+=======
+    JoinToMultiJoinRule.INSTANCE,
+>>>>>>> release-1.9
     // merge project to MultiJoin
     ProjectMultiJoinMergeRule.INSTANCE,
     // merge filter to MultiJoin

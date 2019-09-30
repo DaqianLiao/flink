@@ -19,13 +19,23 @@ package org.apache.flink.table.planner.codegen.agg
 
 import org.apache.flink.table.dataformat.{BaseRow, GenericRow, UpdatableRow}
 import org.apache.flink.table.expressions.Expression
+<<<<<<< HEAD
 import org.apache.flink.table.functions.AggregateFunction
+=======
+import org.apache.flink.table.functions.UserDefinedAggregateFunction
+>>>>>>> release-1.9
 import org.apache.flink.table.planner.codegen.CodeGenUtils._
 import org.apache.flink.table.planner.codegen.GenerateUtils.generateFieldAccess
 import org.apache.flink.table.planner.codegen.agg.AggsHandlerCodeGenerator._
 import org.apache.flink.table.planner.codegen.{CodeGenException, CodeGeneratorContext, ExprCodeGenerator, GeneratedExpression}
 import org.apache.flink.table.planner.dataview.DataViewSpec
+<<<<<<< HEAD
 import org.apache.flink.table.planner.expressions.{ResolvedAggInputReference, ResolvedDistinctKeyReference, RexNodeConverter}
+=======
+import org.apache.flink.table.planner.expressions.DeclarativeExpressionResolver
+import org.apache.flink.table.planner.expressions.DeclarativeExpressionResolver.toRexInputRef
+import org.apache.flink.table.planner.expressions.converter.ExpressionConverter
+>>>>>>> release-1.9
 import org.apache.flink.table.planner.functions.utils.UserDefinedFunctionUtils.{getAggFunctionUDIMethod, getAggUserDefinedInputTypes, getUserDefinedMethod, internalTypesToClasses, signatureToString}
 import org.apache.flink.table.planner.plan.utils.AggregateInfo
 import org.apache.flink.table.planner.utils.SingleElementIterator
@@ -34,6 +44,10 @@ import org.apache.flink.table.runtime.types.LogicalTypeDataTypeConverter.fromDat
 import org.apache.flink.table.runtime.types.{ClassDataTypeConverter, PlannerTypeUtils}
 import org.apache.flink.table.types.DataType
 import org.apache.flink.table.types.logical.{LogicalType, RowType}
+<<<<<<< HEAD
+=======
+import org.apache.flink.util.Collector
+>>>>>>> release-1.9
 
 import org.apache.calcite.tools.RelBuilder
 
@@ -79,7 +93,11 @@ class ImperativeAggCodeGen(
   private val SINGLE_ITERABLE = className[SingleElementIterator[_]]
   private val UPDATABLE_ROW = className[UpdatableRow]
 
+<<<<<<< HEAD
   val function: AggregateFunction[_, _] = aggInfo.function.asInstanceOf[AggregateFunction[_, _]]
+=======
+  val function = aggInfo.function.asInstanceOf[UserDefinedAggregateFunction[_, _]]
+>>>>>>> release-1.9
   val functionTerm: String = ctx.addReusableFunction(
     function,
     contextTerm = s"$STORE_TERM.getRuntimeContext()")
@@ -110,7 +128,11 @@ class ImperativeAggCodeGen(
   private val externalResultType = aggInfo.externalResultType
   private val internalResultType = fromDataTypeToLogicalType(externalResultType)
 
+<<<<<<< HEAD
   private val rexNodeGen = new RexNodeConverter(relBuilder)
+=======
+  private val rexNodeGen = new ExpressionConverter(relBuilder)
+>>>>>>> release-1.9
 
   val viewSpecs: Array[DataViewSpec] = aggInfo.viewSpecs
   // add reusable dataviews to context
@@ -281,6 +303,7 @@ class ImperativeAggCodeGen(
         val inputRef = if (generator.input1Term.startsWith(DISTINCT_KEY_TERM)) {
           if (argTypes.length == 1) {
             // called from distinct merge and the inputTerm is the only argument
+<<<<<<< HEAD
             new ResolvedDistinctKeyReference(generator.input1Term, inputTypes(f))
           } else {
             // called from distinct merge call and the inputTerm is BaseRow type
@@ -289,6 +312,17 @@ class ImperativeAggCodeGen(
         } else {
           // called from accumulate
           new ResolvedAggInputReference(f.toString, f, inputTypes(f))
+=======
+            DeclarativeExpressionResolver.toRexDistinctKey(
+              relBuilder, generator.input1Term, inputTypes(f))
+          } else {
+            // called from distinct merge call and the inputTerm is BaseRow type
+            toRexInputRef(relBuilder, index, inputTypes(f))
+          }
+        } else {
+          // called from accumulate
+          toRexInputRef(relBuilder, f, inputTypes(f))
+>>>>>>> release-1.9
         }
         var inputExpr = generator.generateExpression(inputRef.accept(rexNodeGen))
         if (inputFieldCopy) inputExpr = inputExpr.deepCopy(ctx)
@@ -441,7 +475,12 @@ class ImperativeAggCodeGen(
       needAccumulate: Boolean = false,
       needRetract: Boolean = false,
       needMerge: Boolean = false,
+<<<<<<< HEAD
       needReset: Boolean = false): Unit = {
+=======
+      needReset: Boolean = false,
+      needEmitValue: Boolean = false): Unit = {
+>>>>>>> release-1.9
 
     val methodSignatures = internalTypesToClasses(argTypes)
 
@@ -503,5 +542,23 @@ class ImperativeAggCodeGen(
               s"aggregate ${function.getClass.getCanonicalName}'.")
         )
     }
+<<<<<<< HEAD
+=======
+
+    if (needEmitValue) {
+      val collectorDataType = ClassDataTypeConverter.fromClassToDataType(classOf[Collector[_]])
+      getUserDefinedMethod(function, "emitValue", Array(externalAccType, collectorDataType))
+        .getOrElse(
+          throw new CodeGenException(
+            s"No matching emitValue method found for " +
+              s"table aggregate ${function.getClass.getCanonicalName}'.")
+        )
+    }
+  }
+
+  def emitValue: String = {
+    val accTerm = if (isAccTypeInternal) accInternalTerm else accExternalTerm
+    s"$functionTerm.emitValue($accTerm, $MEMBER_COLLECTOR_TERM);"
+>>>>>>> release-1.9
   }
 }

@@ -251,6 +251,7 @@ public class CheckpointCoordinator {
 
 		try {
 			this.checkpointStorage = checkpointStateBackend.createCheckpointStorage(job);
+			checkpointStorage.initializeBaseLocations();
 		} catch (IOException e) {
 			throw new FlinkRuntimeException("Failed to create checkpoint storage at checkpoint coordinator side.", e);
 		}
@@ -1274,7 +1275,10 @@ public class CheckpointCoordinator {
 
 	/**
 	 * Make sure the minimum interval between checkpoints has passed
+<<<<<<< HEAD
 	 * 确保 checkpoint 之间的最小间隔已经通过
+=======
+>>>>>>> release-1.9
 	 *
 	 * @throws CheckpointException If the minimum interval between checkpoints has not passed.
 	 */
@@ -1300,7 +1304,10 @@ public class CheckpointCoordinator {
 	}
 
 	private ScheduledFuture<?> scheduleTriggerWithDelay(long initDelay) {
+<<<<<<< HEAD
 		//timer 里面运行 ScheduledTrigger 任务
+=======
+>>>>>>> release-1.9
 		return timer.scheduleAtFixedRate(
 			new ScheduledTrigger(),
 			initDelay, baseInterval, TimeUnit.MILLISECONDS);

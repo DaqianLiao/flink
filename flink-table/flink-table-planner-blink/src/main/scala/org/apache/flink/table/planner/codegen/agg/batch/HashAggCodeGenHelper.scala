@@ -21,14 +21,24 @@ package org.apache.flink.table.planner.codegen.agg.batch
 import org.apache.flink.api.java.tuple.{Tuple2 => JTuple2}
 import org.apache.flink.metrics.Gauge
 import org.apache.flink.table.dataformat.{BaseRow, BinaryRow, GenericRow, JoinedRow}
+<<<<<<< HEAD
 import org.apache.flink.table.expressions.utils.ApiExpressionUtils
 import org.apache.flink.table.expressions.{Expression, ExpressionVisitor, FieldReferenceExpression, TypeLiteralExpression, UnresolvedCallExpression, UnresolvedReferenceExpression, ValueLiteralExpression, _}
+=======
+import org.apache.flink.table.expressions.{Expression, _}
+>>>>>>> release-1.9
 import org.apache.flink.table.functions.{AggregateFunction, UserDefinedFunction}
 import org.apache.flink.table.planner.codegen.CodeGenUtils.{binaryRowFieldSetAccess, binaryRowSetNull}
 import org.apache.flink.table.planner.codegen._
 import org.apache.flink.table.planner.codegen.agg.batch.AggCodeGenHelper.buildAggregateArgsMapping
 import org.apache.flink.table.planner.codegen.sort.SortCodeGenerator
+<<<<<<< HEAD
 import org.apache.flink.table.planner.expressions.{ResolvedAggInputReference, RexNodeConverter}
+=======
+import org.apache.flink.table.planner.expressions.DeclarativeExpressionResolver
+import org.apache.flink.table.planner.expressions.DeclarativeExpressionResolver.toRexInputRef
+import org.apache.flink.table.planner.expressions.converter.ExpressionConverter
+>>>>>>> release-1.9
 import org.apache.flink.table.planner.functions.aggfunctions.DeclarativeAggregateFunction
 import org.apache.flink.table.planner.plan.utils.SortUtil
 import org.apache.flink.table.runtime.generated.{NormalizedKeyComputer, RecordComparator}
@@ -37,6 +47,10 @@ import org.apache.flink.table.runtime.operators.sort.BufferedKVExternalSorter
 import org.apache.flink.table.runtime.typeutils.BinaryRowSerializer
 import org.apache.flink.table.types.DataType
 import org.apache.flink.table.types.logical.{LogicalType, RowType}
+<<<<<<< HEAD
+=======
+
+>>>>>>> release-1.9
 import org.apache.calcite.rel.core.AggregateCall
 import org.apache.calcite.tools.RelBuilder
 
@@ -205,7 +219,11 @@ object HashAggCodeGenHelper {
 
     val initAggCallBufferExprs = aggregates.flatMap(a =>
       a.asInstanceOf[DeclarativeAggregateFunction].initialValuesExpressions)
+<<<<<<< HEAD
         .map(_.accept(new RexNodeConverter(builder)))
+=======
+        .map(_.accept(new ExpressionConverter(builder)))
+>>>>>>> release-1.9
         .map(exprCodegen.generateExpression)
 
     val initAggBufferExprs = initAuxGroupingExprs ++ initAggCallBufferExprs
@@ -286,15 +304,26 @@ object HashAggCodeGenHelper {
       val bindRefOffset = inputType.getFieldCount
       val getAuxGroupingExprs = auxGrouping.indices.map { idx =>
         val (_, resultType) = aggBuffMapping(idx)(0)
+<<<<<<< HEAD
         new ResolvedAggInputReference("aux_group", bindRefOffset + idx, resultType)
       }.map(_.accept(new RexNodeConverter(builder))).map(exprCodegen.generateExpression)
+=======
+        toRexInputRef(builder, bindRefOffset + idx, resultType)
+      }.map(_.accept(new ExpressionConverter(builder))).map(exprCodegen.generateExpression)
+>>>>>>> release-1.9
 
       val getAggValueExprs = aggregates.zipWithIndex.map {
         case (agg: DeclarativeAggregateFunction, aggIndex) =>
           val idx = auxGrouping.length + aggIndex
+<<<<<<< HEAD
           agg.getValueExpression.accept(
             ResolveReference(ctx, isMerge, bindRefOffset, agg, idx, argsMapping, aggBuffMapping))
       }.map(_.accept(new RexNodeConverter(builder))).map(exprCodegen.generateExpression)
+=======
+          agg.getValueExpression.accept(ResolveReference(
+            ctx, builder, isMerge, bindRefOffset, agg, idx, argsMapping, aggBuffMapping))
+      }.map(_.accept(new ExpressionConverter(builder))).map(exprCodegen.generateExpression)
+>>>>>>> release-1.9
 
       val getValueExprs = getAuxGroupingExprs ++ getAggValueExprs
       val aggValueTerm = CodeGenUtils.newName("aggVal")
@@ -327,11 +356,16 @@ object HashAggCodeGenHelper {
     */
   private case class ResolveReference(
       ctx: CodeGeneratorContext,
+<<<<<<< HEAD
+=======
+      relBuilder: RelBuilder,
+>>>>>>> release-1.9
       isMerge: Boolean,
       offset: Int,
       agg: DeclarativeAggregateFunction,
       aggIndex: Int,
       argsMapping: Array[Array[(Int, LogicalType)]],
+<<<<<<< HEAD
       aggBuffMapping: Array[Array[(Int, LogicalType)]]) extends ExpressionVisitor[Expression] {
 
     override def visit(call: CallExpression): Expression = ???
@@ -379,6 +413,24 @@ object HashAggCodeGenHelper {
         case u : UnresolvedCallExpression => visitUnresolvedCallExpression(u)
         case _ => other
       }
+=======
+      aggBuffMapping: Array[Array[(Int, LogicalType)]])
+    extends DeclarativeExpressionResolver(relBuilder, agg, isMerge) {
+
+    override def toMergeInputExpr(name: String, localIndex: Int): ResolvedExpression = {
+      val (inputIndex, inputType) = argsMapping(aggIndex)(localIndex)
+      toRexInputRef(relBuilder, inputIndex, inputType)
+    }
+
+    override def toAccInputExpr(name: String, localIndex: Int): ResolvedExpression = {
+      val (inputIndex, inputType) = argsMapping(aggIndex)(localIndex)
+      toRexInputRef(relBuilder, inputIndex, inputType)
+    }
+
+    override def toAggBufferExpr(name: String, localIndex: Int): ResolvedExpression = {
+      val (aggBuffAttrIndex, aggBuffAttrType) = aggBuffMapping(aggIndex)(localIndex)
+      toRexInputRef(relBuilder, offset + aggBuffAttrIndex, aggBuffAttrType)
+>>>>>>> release-1.9
     }
   }
 
@@ -407,8 +459,13 @@ object HashAggCodeGenHelper {
         val bindRefOffset = inputType.getFieldCount
         agg.mergeExpressions.map(
           _.accept(ResolveReference(
+<<<<<<< HEAD
             ctx, isMerge = true, bindRefOffset, agg, idx, argsMapping, aggBuffMapping)))
     }.map(_.accept(new RexNodeConverter(builder))).map(exprCodegen.generateExpression)
+=======
+            ctx, builder, isMerge = true, bindRefOffset, agg, idx, argsMapping, aggBuffMapping)))
+    }.map(_.accept(new ExpressionConverter(builder))).map(exprCodegen.generateExpression)
+>>>>>>> release-1.9
 
     val aggBufferTypeWithoutAuxGrouping = if (auxGrouping.nonEmpty) {
       // auxGrouping does not need merge-code
@@ -464,14 +521,23 @@ object HashAggCodeGenHelper {
         val aggCall = aggCallToAggFun._1
         aggCallToAggFun._2 match {
           case agg: DeclarativeAggregateFunction =>
+<<<<<<< HEAD
             agg.accumulateExpressions.map(
               _.accept(ResolveReference(
                 ctx, isMerge = false, bindRefOffset, agg, idx, argsMapping, aggBuffMapping))
+=======
+            agg.accumulateExpressions.map(_.accept(ResolveReference(
+              ctx, builder, isMerge = false, bindRefOffset, agg, idx, argsMapping, aggBuffMapping))
+>>>>>>> release-1.9
             ).map(e => (e, aggCall))
         }
     }.map {
       case (expr: Expression, aggCall: AggregateCall) =>
+<<<<<<< HEAD
         (exprCodegen.generateExpression(expr.accept(new RexNodeConverter(builder))),
+=======
+        (exprCodegen.generateExpression(expr.accept(new ExpressionConverter(builder))),
+>>>>>>> release-1.9
             aggCall.filterArg)
     }
 

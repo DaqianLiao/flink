@@ -45,7 +45,11 @@ public class GeneratedResultFutureWrapper<T extends ResultFuture<?>> extends Gen
 	}
 
 	@Override
+<<<<<<< HEAD
 	public Class<?> compile(ClassLoader classLoader) {
+=======
+	public Class<T> compile(ClassLoader classLoader) {
+>>>>>>> release-1.9
 		return clazz;
 	}
 }

@@ -22,20 +22,30 @@ import org.apache.flink.table.planner.calcite.{FlinkContext, FlinkPlannerImpl, F
 import org.apache.flink.table.planner.plan.`trait`.{MiniBatchInterval, MiniBatchMode}
 import org.apache.flink.table.planner.{JBoolean, JByte, JDouble, JFloat, JLong, JShort}
 
+<<<<<<< HEAD
 import com.google.common.collect.Lists
 import org.apache.calcite.config.NullCollation
 import org.apache.calcite.plan.RelOptUtil
 import org.apache.calcite.rel.RelFieldCollation.{Direction, NullDirection}
 import org.apache.calcite.rel.`type`.RelDataTypeField
 import org.apache.calcite.rel.core.{Join, JoinRelType}
+=======
+import org.apache.calcite.config.NullCollation
+import org.apache.calcite.plan.RelOptUtil
+import org.apache.calcite.rel.RelFieldCollation.{Direction, NullDirection}
+>>>>>>> release-1.9
 import org.apache.calcite.rel.{RelFieldCollation, RelNode}
 import org.apache.calcite.rex.{RexBuilder, RexCall, RexInputRef, RexLiteral, RexNode, RexUtil, RexVisitorImpl}
 import org.apache.calcite.sql.SqlExplainLevel
 import org.apache.calcite.sql.SqlKind._
 import org.apache.calcite.sql.`type`.SqlTypeName._
+<<<<<<< HEAD
 import org.apache.calcite.tools.RelBuilder
 import org.apache.calcite.util.mapping.Mappings
 import org.apache.calcite.util.{ImmutableBitSet, Pair, Util}
+=======
+import org.apache.calcite.util.ImmutableBitSet
+>>>>>>> release-1.9
 import org.apache.commons.math3.util.ArithmeticUtils
 
 import java.io.{PrintWriter, StringWriter}
@@ -186,6 +196,7 @@ object FlinkRelOptUtil {
     }
   }
 
+<<<<<<< HEAD
   /**
     * Pushes down expressions in "equal" join condition.
     *
@@ -349,6 +360,8 @@ object FlinkRelOptUtil {
         }
     }
 
+=======
+>>>>>>> release-1.9
   private def fix(operands: util.List[RexNode], before: Int, after: Int): Unit = {
     if (before == after) {
       return

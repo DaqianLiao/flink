@@ -134,9 +134,15 @@ object FlinkStreamRuleSets {
     */
   private val FILTER_RULES: RuleSet = RuleSets.ofList(
     // push a filter into a join
+<<<<<<< HEAD
     FlinkFilterJoinRule.FILTER_ON_JOIN,
     // push filter into the children of a join
     FlinkFilterJoinRule.JOIN,
+=======
+    FilterJoinRule.FILTER_ON_JOIN,
+    // push filter into the children of a join
+    FilterJoinRule.JOIN,
+>>>>>>> release-1.9
     // push filter through an aggregation
     FilterAggregateTransposeRule.INSTANCE,
     // push a filter past a project
@@ -210,7 +216,11 @@ object FlinkStreamRuleSets {
     // merge filter to MultiJoin
     FilterMultiJoinMergeRule.INSTANCE,
     // merge join to MultiJoin
+<<<<<<< HEAD
     FlinkJoinToMultiJoinRule.INSTANCE
+=======
+    JoinToMultiJoinRule.INSTANCE
+>>>>>>> release-1.9
   )
 
   val JOIN_REORDER_RULES: RuleSet = RuleSets.ofList(
@@ -290,6 +300,10 @@ object FlinkStreamRuleSets {
   private val LOGICAL_CONVERTERS: RuleSet = RuleSets.ofList(
     // translate to flink logical rel nodes
     FlinkLogicalAggregate.STREAM_CONVERTER,
+<<<<<<< HEAD
+=======
+    FlinkLogicalTableAggregate.CONVERTER,
+>>>>>>> release-1.9
     FlinkLogicalOverAggregate.CONVERTER,
     FlinkLogicalCalc.CONVERTER,
     FlinkLogicalCorrelate.CONVERTER,
@@ -304,6 +318,10 @@ object FlinkStreamRuleSets {
     FlinkLogicalExpand.CONVERTER,
     FlinkLogicalWatermarkAssigner.CONVERTER,
     FlinkLogicalWindowAggregate.CONVERTER,
+<<<<<<< HEAD
+=======
+    FlinkLogicalWindowTableAggregate.CONVERTER,
+>>>>>>> release-1.9
     FlinkLogicalSnapshot.CONVERTER,
     FlinkLogicalMatch.CONVERTER,
     FlinkLogicalSink.CONVERTER
@@ -365,10 +383,18 @@ object FlinkStreamRuleSets {
     StreamExecExpandRule.INSTANCE,
     // group agg
     StreamExecGroupAggregateRule.INSTANCE,
+<<<<<<< HEAD
+=======
+    StreamExecGroupTableAggregateRule.INSTANCE,
+>>>>>>> release-1.9
     // over agg
     StreamExecOverAggregateRule.INSTANCE,
     // window agg
     StreamExecGroupWindowAggregateRule.INSTANCE,
+<<<<<<< HEAD
+=======
+    StreamExecGroupWindowTableAggregateRule.INSTANCE,
+>>>>>>> release-1.9
     // join
     StreamExecJoinRule.INSTANCE,
     StreamExecWindowJoinRule.INSTANCE,

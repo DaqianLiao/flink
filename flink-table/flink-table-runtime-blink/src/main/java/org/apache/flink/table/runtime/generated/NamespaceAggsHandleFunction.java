@@ -18,6 +18,7 @@
 
 package org.apache.flink.table.runtime.generated;
 
+<<<<<<< HEAD
 import org.apache.flink.api.common.functions.Function;
 import org.apache.flink.table.dataformat.BaseRow;
 import org.apache.flink.table.runtime.dataview.StateDataViewStore;
@@ -75,14 +76,27 @@ public interface NamespaceAggsHandleFunction<N> extends Function {
 	 * @return the current accumulators
 	 */
 	BaseRow getAccumulators() throws Exception;
+=======
+import org.apache.flink.table.dataformat.BaseRow;
+
+/**
+ * The base class for handling aggregate functions with namespace.
+ */
+public interface NamespaceAggsHandleFunction<N> extends NamespaceAggsHandleFunctionBase<N> {
+>>>>>>> release-1.9
 
 	/**
 	 * Gets the result of the aggregation from the current accumulators and
 	 * namespace properties (like window start).
+<<<<<<< HEAD
+=======
+	 *
+>>>>>>> release-1.9
 	 * @param namespace the namespace properties which should be calculated, such window start
 	 * @return the final result (saved in a row) of the current accumulators.
 	 */
 	BaseRow getValue(N namespace) throws Exception;
+<<<<<<< HEAD
 
 	/**
 	 * Cleanup for the retired accumulators state.
@@ -95,4 +109,6 @@ public interface NamespaceAggsHandleFunction<N> extends Function {
 	 */
 	void close() throws Exception;
 
+=======
+>>>>>>> release-1.9
 }

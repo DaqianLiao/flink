@@ -148,7 +148,11 @@ object UserDefinedFunctionUtils {
   }
 
   def getAggUserDefinedInputTypes(
+<<<<<<< HEAD
       func: AggregateFunction[_, _],
+=======
+      func: UserDefinedAggregateFunction[_, _],
+>>>>>>> release-1.9
       externalAccType: DataType,
       expectedTypes: Array[LogicalType]): Array[DataType] = {
     val accMethod = getAggFunctionUDIMethod(
@@ -188,7 +192,11 @@ object UserDefinedFunctionUtils {
     * Elements of the signature can be null (act as a wildcard).
     */
   def getAccumulateMethodSignature(
+<<<<<<< HEAD
       function: AggregateFunction[_, _],
+=======
+      function: UserDefinedAggregateFunction[_, _],
+>>>>>>> release-1.9
       expectedTypes: Seq[LogicalType])
   : Option[Array[Class[_]]] = {
     getAggFunctionUDIMethod(
@@ -239,7 +247,11 @@ object UserDefinedFunctionUtils {
   }
 
   def getAggFunctionUDIMethod(
+<<<<<<< HEAD
       function: AggregateFunction[_, _],
+=======
+      function: UserDefinedAggregateFunction[_, _],
+>>>>>>> release-1.9
       methodName: String,
       accType: DataType,
       expectedTypes: Seq[LogicalType])
@@ -530,6 +542,7 @@ object UserDefinedFunctionUtils {
   // ----------------------------------------------------------------------------------------------
 
   /**
+<<<<<<< HEAD
     * Tries to infer the DataType of an AggregateFunction's return type.
     *
     * @param aggregateFunction The AggregateFunction for which the return type is inferred.
@@ -542,18 +555,41 @@ object UserDefinedFunctionUtils {
       extractedType: DataType = null): DataType = {
 
     val resultType = aggregateFunction.getResultType
+=======
+    * Tries to infer the DataType of a [[UserDefinedAggregateFunction]]'s return type.
+    *
+    * @param userDefinedAggregateFunction The [[UserDefinedAggregateFunction]] for which the return
+    *                                     type is inferred.
+    * @param extractedType                The implicitly inferred type of the result type.
+    * @return The inferred result type of the [[UserDefinedAggregateFunction]].
+    */
+  def getResultTypeOfAggregateFunction(
+      userDefinedAggregateFunction: UserDefinedAggregateFunction[_, _],
+      extractedType: DataType = null): DataType = {
+
+    val resultType = userDefinedAggregateFunction.getResultType
+>>>>>>> release-1.9
     if (resultType != null) {
       fromLegacyInfoToDataType(resultType)
     } else if (extractedType != null) {
       extractedType
     } else {
       try {
+<<<<<<< HEAD
         extractTypeFromAggregateFunction(aggregateFunction, 0)
+=======
+        extractTypeFromAggregateFunction(userDefinedAggregateFunction, 0)
+>>>>>>> release-1.9
       } catch {
         case ite: InvalidTypesException =>
           throw new TableException(
             "Cannot infer generic type of ${aggregateFunction.getClass}. " +
+<<<<<<< HEAD
                 "You can override AggregateFunction.getResultType() to specify the type.",
+=======
+                "You can override UserDefinedAggregateFunction.getResultType() to " +
+                "specify the type.",
+>>>>>>> release-1.9
             ite
           )
       }
@@ -561,6 +597,7 @@ object UserDefinedFunctionUtils {
   }
 
   /**
+<<<<<<< HEAD
     * Tries to infer the Type of an AggregateFunction's accumulator type.
     *
     * @param aggregateFunction The AggregateFunction for which the accumulator type is inferred.
@@ -573,18 +610,41 @@ object UserDefinedFunctionUtils {
       extractedType: DataType = null): DataType = {
 
     val accType = aggregateFunction.getAccumulatorType
+=======
+    * Tries to infer the Type of a [[UserDefinedAggregateFunction]]'s accumulator type.
+    *
+    * @param userDefinedAggregateFunction The [[UserDefinedAggregateFunction]] for which the
+    *                                     accumulator type is inferred.
+    * @param extractedType                The implicitly inferred type of the accumulator type.
+    * @return The inferred accumulator type of the [[UserDefinedAggregateFunction]].
+    */
+  def getAccumulatorTypeOfAggregateFunction(
+      userDefinedAggregateFunction: UserDefinedAggregateFunction[_, _],
+      extractedType: DataType = null): DataType = {
+
+    val accType = userDefinedAggregateFunction.getAccumulatorType
+>>>>>>> release-1.9
     if (accType != null) {
       fromLegacyInfoToDataType(accType)
     } else if (extractedType != null) {
       extractedType
     } else {
       try {
+<<<<<<< HEAD
         extractTypeFromAggregateFunction(aggregateFunction, 1)
+=======
+        extractTypeFromAggregateFunction(userDefinedAggregateFunction, 1)
+>>>>>>> release-1.9
       } catch {
         case ite: InvalidTypesException =>
           throw new TableException(
             "Cannot infer generic type of ${aggregateFunction.getClass}. " +
+<<<<<<< HEAD
                 "You can override AggregateFunction.getAccumulatorType() to specify the type.",
+=======
+                "You can override UserDefinedAggregateFunction.getAccumulatorType() to specify " +
+                "the type.",
+>>>>>>> release-1.9
             ite
           )
       }
@@ -593,21 +653,35 @@ object UserDefinedFunctionUtils {
   }
 
   /**
+<<<<<<< HEAD
     * Internal method to extract a type from an AggregateFunction's type parameters.
     *
     * @param aggregateFunction The AggregateFunction for which the type is extracted.
+=======
+    * Internal method to extract a type from a [[UserDefinedAggregateFunction]]'s type parameters.
+    *
+    * @param aggregateFunction The [[UserDefinedAggregateFunction]] for which the type is extracted.
+>>>>>>> release-1.9
     * @param parameterTypePos The position of the type parameter for which the type is extracted.
     *
     * @return The extracted type.
     */
   @throws(classOf[InvalidTypesException])
   private def extractTypeFromAggregateFunction(
+<<<<<<< HEAD
       aggregateFunction: AggregateFunction[_, _],
+=======
+      aggregateFunction: UserDefinedAggregateFunction[_, _],
+>>>>>>> release-1.9
       parameterTypePos: Int): DataType = {
 
     fromLegacyInfoToDataType(TypeExtractor.createTypeInfo(
       aggregateFunction,
+<<<<<<< HEAD
       classOf[AggregateFunction[_, _]],
+=======
+      classOf[UserDefinedAggregateFunction[_, _]],
+>>>>>>> release-1.9
       aggregateFunction.getClass,
       parameterTypePos))
   }

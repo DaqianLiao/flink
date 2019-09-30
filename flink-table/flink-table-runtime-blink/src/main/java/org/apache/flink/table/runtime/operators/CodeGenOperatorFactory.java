@@ -20,7 +20,10 @@ package org.apache.flink.table.runtime.operators;
 
 import org.apache.flink.streaming.api.graph.StreamConfig;
 import org.apache.flink.streaming.api.operators.ChainingStrategy;
+<<<<<<< HEAD
 import org.apache.flink.streaming.api.operators.InputSelectable;
+=======
+>>>>>>> release-1.9
 import org.apache.flink.streaming.api.operators.Output;
 import org.apache.flink.streaming.api.operators.StreamOperator;
 import org.apache.flink.streaming.api.operators.StreamOperatorFactory;
@@ -59,8 +62,13 @@ public class CodeGenOperatorFactory<OUT> implements StreamOperatorFactory<OUT> {
 	}
 
 	@Override
+<<<<<<< HEAD
 	public boolean isOperatorSelectiveReading() {
 		return InputSelectable.class.isAssignableFrom(generatedClass.getClass(Thread.currentThread().getContextClassLoader()));
+=======
+	public Class<? extends StreamOperator> getStreamOperatorClass(ClassLoader classLoader) {
+		return generatedClass.getClass(classLoader);
+>>>>>>> release-1.9
 	}
 
 	public GeneratedClass<? extends StreamOperator<OUT>> getGeneratedClass() {

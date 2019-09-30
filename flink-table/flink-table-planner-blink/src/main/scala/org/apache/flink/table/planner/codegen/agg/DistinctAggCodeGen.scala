@@ -27,7 +27,11 @@ import org.apache.flink.table.planner.codegen.GenerateUtils.{generateFieldAccess
 import org.apache.flink.table.planner.codegen.GeneratedExpression._
 import org.apache.flink.table.planner.codegen.agg.AggsHandlerCodeGenerator._
 import org.apache.flink.table.planner.codegen.{CodeGeneratorContext, ExprCodeGenerator, GeneratedExpression}
+<<<<<<< HEAD
 import org.apache.flink.table.planner.expressions.RexNodeConverter
+=======
+import org.apache.flink.table.planner.expressions.converter.ExpressionConverter
+>>>>>>> release-1.9
 import org.apache.flink.table.planner.plan.utils.DistinctInfo
 import org.apache.flink.table.runtime.types.LogicalTypeDataTypeConverter.fromDataTypeToLogicalType
 import org.apache.flink.table.types.DataType
@@ -91,7 +95,11 @@ class DistinctAggCodeGen(
   val isValueChangedTerm: String = s"is_distinct_value_changed_$distinctIndex"
   val isValueEmptyTerm: String = s"is_distinct_value_empty_$distinctIndex"
   val valueGenerator: DistinctValueGenerator = createDistinctValueGenerator()
+<<<<<<< HEAD
   private val rexNodeGen = new RexNodeConverter(relBuilder)
+=======
+  private val rexNodeGen = new ExpressionConverter(relBuilder)
+>>>>>>> release-1.9
 
   addReusableDistinctAccumulator()
 
@@ -358,14 +366,24 @@ class DistinctAggCodeGen(
       needAccumulate: Boolean,
       needRetract: Boolean,
       needMerge: Boolean,
+<<<<<<< HEAD
       needReset: Boolean): Unit = {
+=======
+      needReset: Boolean,
+      needEmitValue: Boolean): Unit = {
+>>>>>>> release-1.9
     if (needMerge) {
       // see merge method for more information
       innerAggCodeGens
       .foreach(_.checkNeededMethods(needAccumulate = true, needRetract = consumeRetraction))
     } else {
+<<<<<<< HEAD
       innerAggCodeGens
       .foreach(_.checkNeededMethods(needAccumulate, needRetract, needMerge, needReset))
+=======
+      innerAggCodeGens.foreach(
+        _.checkNeededMethods(needAccumulate, needRetract, needMerge, needReset, needEmitValue))
+>>>>>>> release-1.9
     }
   }
 

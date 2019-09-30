@@ -49,7 +49,11 @@ public abstract class GeneratedClass<T> implements Serializable {
 	@SuppressWarnings("unchecked")
 	public T newInstance(ClassLoader classLoader) {
 		try {
+<<<<<<< HEAD
 			return (T) compile(classLoader).getConstructor(Object[].class)
+=======
+			return compile(classLoader).getConstructor(Object[].class)
+>>>>>>> release-1.9
 					// Because Constructor.newInstance(Object... initargs), we need to load
 					// references into a new Object[], otherwise it cannot be compiled.
 					.newInstance(new Object[] {references});
@@ -72,7 +76,11 @@ public abstract class GeneratedClass<T> implements Serializable {
 	/**
 	 * Compiles the generated code, the compiled class will be cached in the {@link GeneratedClass}.
 	 */
+<<<<<<< HEAD
 	public Class<?> compile(ClassLoader classLoader) {
+=======
+	public Class<T> compile(ClassLoader classLoader) {
+>>>>>>> release-1.9
 		if (compiledClass == null) {
 			// cache the compiled class
 			compiledClass = CompileUtils.compile(classLoader, className, code);
@@ -92,7 +100,11 @@ public abstract class GeneratedClass<T> implements Serializable {
 		return references;
 	}
 
+<<<<<<< HEAD
 	public Class<?> getClass(ClassLoader classLoader) {
+=======
+	public Class<T> getClass(ClassLoader classLoader) {
+>>>>>>> release-1.9
 		return compile(classLoader);
 	}
 }

@@ -25,7 +25,11 @@ import org.apache.flink.table.dataformat.util.BinaryRowUtil.BYTE_ARRAY_BASE_OFFS
 import org.apache.flink.table.dataformat.{BinaryStringUtil, Decimal, _}
 import org.apache.flink.table.functions.UserDefinedFunction
 import org.apache.flink.table.runtime.dataview.StateDataViewStore
+<<<<<<< HEAD
 import org.apache.flink.table.runtime.generated.{AggsHandleFunction, HashFunction, NamespaceAggsHandleFunction}
+=======
+import org.apache.flink.table.runtime.generated.{AggsHandleFunction, HashFunction, NamespaceAggsHandleFunction, TableAggsHandleFunction}
+>>>>>>> release-1.9
 import org.apache.flink.table.runtime.types.ClassLogicalTypeConverter
 import org.apache.flink.table.runtime.types.ClassLogicalTypeConverter.getInternalClassForType
 import org.apache.flink.table.runtime.types.LogicalTypeDataTypeConverter.fromDataTypeToLogicalType
@@ -89,6 +93,11 @@ object CodeGenUtils {
 
   val AGGS_HANDLER_FUNCTION: String = className[AggsHandleFunction]
 
+<<<<<<< HEAD
+=======
+  val TABLE_AGGS_HANDLER_FUNCTION: String = className[TableAggsHandleFunction]
+
+>>>>>>> release-1.9
   val NAMESPACE_AGGS_HANDLER_FUNCTION: String = className[NamespaceAggsHandleFunction[_]]
 
   val STATE_DATA_VIEW_STORE: String = className[StateDataViewStore]

@@ -33,7 +33,10 @@ import org.apache.flink.table.operations.ddl.CreateTableOperation;
 import org.apache.flink.table.operations.ddl.DropTableOperation;
 import org.apache.flink.table.planner.calcite.FlinkPlannerImpl;
 import org.apache.flink.table.planner.calcite.FlinkTypeFactory;
+<<<<<<< HEAD
 import org.apache.flink.table.planner.calcite.FlinkTypeSystem;
+=======
+>>>>>>> release-1.9
 import org.apache.flink.table.runtime.types.LogicalTypeDataTypeConverter;
 
 import org.apache.calcite.rel.RelRoot;
@@ -116,8 +119,12 @@ public class SqlToOperationConverter {
 					((SqlTableOption) p).getValueString()));
 		}
 
+<<<<<<< HEAD
 		TableSchema tableSchema = createTableSchema(sqlCreateTable,
 			new FlinkTypeFactory(new FlinkTypeSystem())); // need to make type factory singleton ?
+=======
+		TableSchema tableSchema = createTableSchema(sqlCreateTable);
+>>>>>>> release-1.9
 		String tableComment = "";
 		if (sqlCreateTable.getComment() != null) {
 			tableComment = sqlCreateTable.getComment().getNlsString().getValue();
@@ -153,7 +160,12 @@ public class SqlToOperationConverter {
 			targetTablePath,
 			(PlannerQueryOperation) SqlToOperationConverter.convert(flinkPlanner,
 				insert.getSource()),
+<<<<<<< HEAD
 			insert.getStaticPartitionKVs());
+=======
+			insert.getStaticPartitionKVs(),
+			insert.isOverwrite());
+>>>>>>> release-1.9
 	}
 
 	/** Fallback method for sql query. */
@@ -179,11 +191,17 @@ public class SqlToOperationConverter {
 	 * <p>The returned table schema contains columns (a:int, b:varchar, c:timestamp).
 	 *
 	 * @param sqlCreateTable sql create table node.
+<<<<<<< HEAD
 	 * @param factory        FlinkTypeFactory instance.
 	 * @return TableSchema
 	 */
 	private TableSchema createTableSchema(SqlCreateTable sqlCreateTable,
 			FlinkTypeFactory factory) {
+=======
+	 * @return TableSchema
+	 */
+	private TableSchema createTableSchema(SqlCreateTable sqlCreateTable) {
+>>>>>>> release-1.9
 		// setup table columns
 		SqlNodeList columnList = sqlCreateTable.getColumnList();
 		TableSchema physicalSchema = null;
@@ -193,8 +211,15 @@ public class SqlToOperationConverter {
 			.filter(n -> n instanceof SqlTableColumn).collect(Collectors.toList());
 		for (SqlNode node : physicalColumns) {
 			SqlTableColumn column = (SqlTableColumn) node;
+<<<<<<< HEAD
 			final RelDataType relType = column.getType().deriveType(factory,
 				column.getType().getNullable());
+=======
+			final RelDataType relType = column.getType()
+				.deriveType(
+					flinkPlanner.getOrCreateSqlValidator(),
+					column.getType().getNullable());
+>>>>>>> release-1.9
 			builder.field(column.getName().getSimple(),
 				LogicalTypeDataTypeConverter.fromLogicalTypeToDataType(
 					FlinkTypeFactory.toLogicalType(relType)));

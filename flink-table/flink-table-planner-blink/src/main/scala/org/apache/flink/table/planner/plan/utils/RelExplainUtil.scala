@@ -342,11 +342,22 @@ object RelExplainUtil {
       stringifyAggregates(aggInfos, distinctAggs, aggFilters, inFieldNames)
     }
 
+<<<<<<< HEAD
+=======
+    val isTableAggregate =
+      AggregateUtil.isTableAggregate(aggInfoList.getActualAggregateCalls.toList)
+>>>>>>> release-1.9
     val outputFieldNames = if (isLocal) {
       grouping.map(inFieldNames(_)) ++ localAggOutputFieldNames(aggOffset, aggInfos, outFieldNames)
     } else if (isIncremental) {
       val accFieldNames = inputRowType.getFieldNames.toList.toArray
       grouping.map(inFieldNames(_)) ++ localAggOutputFieldNames(aggOffset, aggInfos, accFieldNames)
+<<<<<<< HEAD
+=======
+    } else if (isTableAggregate) {
+      outFieldNames.slice(0, grouping.length) ++
+        Seq(s"(${outFieldNames.drop(grouping.length).mkString(", ")})")
+>>>>>>> release-1.9
     } else {
       outFieldNames
     }
@@ -741,7 +752,20 @@ object RelExplainUtil {
       namedProperties: Seq[PlannerNamedWindowProperty],
       withOutputFieldNames: Boolean = true): String = {
     val inFields = inputType.getFieldNames
+<<<<<<< HEAD
     val outFields = rowType.getFieldNames
+=======
+    val isTableAggregate = AggregateUtil.isTableAggregate(aggs)
+    val outFields: Seq[String] = if (isTableAggregate) {
+      val outNames = rowType.getFieldNames
+      outNames.slice(0, grouping.length) ++
+        List(s"(${outNames.drop(grouping.length)
+          .dropRight(namedProperties.length).mkString(", ")})") ++
+        outNames.slice(outNames.length - namedProperties.length, outNames.length)
+    } else {
+      rowType.getFieldNames
+    }
+>>>>>>> release-1.9
     val groupStrings = grouping.map(inFields(_))
 
     val aggStrings = aggs.map(a => {

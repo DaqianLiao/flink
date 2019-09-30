@@ -45,7 +45,11 @@ public class GeneratedFunctionWrapper<F extends Function> extends GeneratedFunct
 	}
 
 	@Override
+<<<<<<< HEAD
 	public Class<?> compile(ClassLoader classLoader) {
+=======
+	public Class<F> compile(ClassLoader classLoader) {
+>>>>>>> release-1.9
 		return clazz;
 	}
 }

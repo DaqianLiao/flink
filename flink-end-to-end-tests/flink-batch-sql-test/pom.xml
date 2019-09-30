@@ -24,7 +24,11 @@
 	<parent>
 		<artifactId>flink-end-to-end-tests</artifactId>
 		<groupId>org.apache.flink</groupId>
+<<<<<<< HEAD
 		<version>1.9-SNAPSHOT</version>
+=======
+		<version>1.10-SNAPSHOT</version>
+>>>>>>> release-1.9
 		<relativePath>..</relativePath>
 	</parent>
 

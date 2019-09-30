@@ -22,12 +22,16 @@ import java.util
 import java.util.Collections
 
 class TestTableDescriptor(connector: ConnectorDescriptor)
+<<<<<<< HEAD
   extends TableDescriptor[TestTableDescriptor](connector)
   with SchematicDescriptor[TestTableDescriptor] {
+=======
+  extends TableDescriptor[TestTableDescriptor](connector) {
+>>>>>>> release-1.9
 
   private var schemaDescriptor: Option[Schema] = None
 
-  override def withSchema(schema: Schema): TestTableDescriptor = {
+  def withSchema(schema: Schema): TestTableDescriptor = {
     this.schemaDescriptor = Some(schema)
     this
   }

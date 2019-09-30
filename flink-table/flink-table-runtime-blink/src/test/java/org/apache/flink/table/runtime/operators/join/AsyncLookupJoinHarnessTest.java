@@ -29,7 +29,11 @@ import org.apache.flink.streaming.api.datastream.AsyncDataStream;
 import org.apache.flink.streaming.api.functions.async.AsyncFunction;
 import org.apache.flink.streaming.api.functions.async.ResultFuture;
 import org.apache.flink.streaming.api.functions.async.RichAsyncFunction;
+<<<<<<< HEAD
 import org.apache.flink.streaming.api.operators.async.AsyncWaitOperator;
+=======
+import org.apache.flink.streaming.api.operators.async.AsyncWaitOperatorFactory;
+>>>>>>> release-1.9
 import org.apache.flink.streaming.util.OneInputStreamOperatorTestHarness;
 import org.apache.flink.table.dataformat.BaseRow;
 import org.apache.flink.table.dataformat.BinaryString;
@@ -238,6 +242,7 @@ public class AsyncLookupJoinHarnessTest {
 				ASYNC_BUFFER_CAPACITY);
 		}
 
+<<<<<<< HEAD
 		AsyncWaitOperator<BaseRow, BaseRow> operator = new AsyncWaitOperator<>(
 			joinRunner,
 			ASYNC_TIMEOUT_MS,
@@ -246,6 +251,14 @@ public class AsyncLookupJoinHarnessTest {
 
 		return new OneInputStreamOperatorTestHarness<>(
 			operator,
+=======
+		return new OneInputStreamOperatorTestHarness<>(
+			new AsyncWaitOperatorFactory<>(
+				joinRunner,
+				ASYNC_TIMEOUT_MS,
+				ASYNC_BUFFER_CAPACITY,
+				AsyncDataStream.OutputMode.ORDERED),
+>>>>>>> release-1.9
 			inSerializer);
 	}
 
