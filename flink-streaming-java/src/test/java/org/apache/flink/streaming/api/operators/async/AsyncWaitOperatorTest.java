@@ -1085,4 +1085,48 @@ public class AsyncWaitOperatorTest extends TestLogger {
 			new AsyncWaitOperatorFactory<>(function, timeout, capacity, outputMode),
 			IntSerializer.INSTANCE);
 	}
+
+	/**
+	 * Delay a while before async invocation to check whether end input waits for all elements finished or not.
+	 */
+	@Test
+	public void testEndInput() throws Exception {
+		final AsyncWaitOperator<Integer, Integer> operator = new AsyncWaitOperator<>(
+			new DelayedAsyncFunction(10),
+			-1,
+			2,
+			AsyncDataStream.OutputMode.ORDERED);
+
+		final OneInputStreamOperatorTestHarness<Integer, Integer> testHarness =
+			new OneInputStreamOperatorTestHarness<>(operator, IntSerializer.INSTANCE);
+
+		final long initialTime = 0L;
+		final ConcurrentLinkedQueue<Object> expectedOutput = new ConcurrentLinkedQueue<>();
+		expectedOutput.add(new StreamRecord<>(2, initialTime + 1));
+		expectedOutput.add(new StreamRecord<>(4, initialTime + 2));
+		expectedOutput.add(new Watermark(initialTime + 2));
+		expectedOutput.add(new StreamRecord<>(6, initialTime + 3));
+
+		testHarness.open();
+
+		try {
+			synchronized (testHarness.getCheckpointLock()) {
+				testHarness.processElement(new StreamRecord<>(1, initialTime + 1));
+				testHarness.processElement(new StreamRecord<>(2, initialTime + 2));
+				testHarness.processWatermark(new Watermark(initialTime + 2));
+				testHarness.processElement(new StreamRecord<>(3, initialTime + 3));
+			}
+
+			// wait until all async collectors in the buffer have been emitted out.
+			synchronized (testHarness.getCheckpointLock()) {
+				testHarness.endInput();
+			}
+
+			TestHarnessUtil.assertOutputEquals("Output with watermark was not correct.", expectedOutput, testHarness.getOutput());
+		} finally {
+			synchronized (testHarness.getCheckpointLock()) {
+				testHarness.close();
+			}
+		}
+	}
 }

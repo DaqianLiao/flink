@@ -28,7 +28,6 @@ import org.apache.flink.table.planner.calcite.FlinkTypeFactory
 import org.apache.flink.table.planner.utils.Logging
 import org.apache.flink.table.runtime.functions.SqlDateTimeUtils.unixTimestampToLocalDateTime
 import org.apache.flink.table.runtime.types.LogicalTypeDataTypeConverter.fromLogicalTypeToDataType
-import org.apache.flink.table.types.DataType
 import org.apache.flink.table.types.logical.LogicalTypeRoot._
 import org.apache.flink.util.Preconditions
 
@@ -295,9 +294,9 @@ class RexNodeToExpressionConverter(
     inputNames: Array[String],
     functionCatalog: FunctionCatalog,
     timeZone: TimeZone)
-  extends RexVisitor[Option[ResolvedExpression]] {
+  extends RexVisitor[Option[Expression]] {
 
-  override def visitInputRef(inputRef: RexInputRef): Option[ResolvedExpression] = {
+  override def visitInputRef(inputRef: RexInputRef): Option[Expression] = {
     Preconditions.checkArgument(inputRef.getIndex < inputNames.length)
     Some(new FieldReferenceExpression(
       inputNames(inputRef.getIndex),
@@ -307,14 +306,14 @@ class RexNodeToExpressionConverter(
     ))
   }
 
-  override def visitTableInputRef(rexTableInputRef: RexTableInputRef): Option[ResolvedExpression] =
+  override def visitTableInputRef(rexTableInputRef: RexTableInputRef): Option[Expression] =
     visitInputRef(rexTableInputRef)
 
-  override def visitLocalRef(localRef: RexLocalRef): Option[ResolvedExpression] = {
+  override def visitLocalRef(localRef: RexLocalRef): Option[Expression] = {
     throw new TableException("Bug: RexLocalRef should have been expanded")
   }
 
-  override def visitLiteral(literal: RexLiteral): Option[ResolvedExpression] = {
+  override def visitLiteral(literal: RexLiteral): Option[Expression] = {
     // TODO support SqlTrimFunction.Flag
     literal.getValue match {
       case _: SqlTrimFunction.Flag => return None
@@ -385,12 +384,10 @@ class RexNodeToExpressionConverter(
       fromLogicalTypeToDataType(literalType)))
   }
 
-  override def visitCall(rexCall: RexCall): Option[ResolvedExpression] = {
+  override def visitCall(rexCall: RexCall): Option[Expression] = {
     val operands = rexCall.getOperands.map(
       operand => operand.accept(this).orNull
     )
-
-    val outputType = fromLogicalTypeToDataType(FlinkTypeFactory.toLogicalType(rexCall.getType))
 
     // return null if we cannot translate all the operands of the call
     if (operands.contains(null)) {
@@ -398,45 +395,42 @@ class RexNodeToExpressionConverter(
     } else {
       rexCall.getOperator match {
         case SqlStdOperatorTable.OR =>
-          Option(operands.reduceLeft((l, r) => new CallExpression(OR, Seq(l, r), outputType)))
+          Option(operands.reduceLeft { (l, r) => unresolvedCall(OR, l, r) })
         case SqlStdOperatorTable.AND =>
-          Option(operands.reduceLeft((l, r) => new CallExpression(AND, Seq(l, r), outputType)))
+          Option(operands.reduceLeft { (l, r) => unresolvedCall(AND, l, r) })
         case SqlStdOperatorTable.CAST =>
-          Option(new CallExpression(CAST, Seq(operands.head, typeLiteral(outputType)), outputType))
+          Option(unresolvedCall(CAST, operands.head,
+            typeLiteral(fromLogicalTypeToDataType(
+              FlinkTypeFactory.toLogicalType(rexCall.getType)))))
         case function: SqlFunction =>
-          lookupFunction(replace(function.getName), operands, outputType)
+          lookupFunction(replace(function.getName), operands)
         case postfix: SqlPostfixOperator =>
-          lookupFunction(replace(postfix.getName), operands, outputType)
+          lookupFunction(replace(postfix.getName), operands)
         case operator@_ =>
-          lookupFunction(replace(s"${operator.getKind}"), operands, outputType)
+          lookupFunction(replace(s"${operator.getKind}"), operands)
       }
     }
   }
 
-  override def visitFieldAccess(fieldAccess: RexFieldAccess): Option[ResolvedExpression] = None
+  override def visitFieldAccess(fieldAccess: RexFieldAccess): Option[Expression] = None
 
-  override def visitCorrelVariable(
-      correlVariable: RexCorrelVariable): Option[ResolvedExpression] = None
+  override def visitCorrelVariable(correlVariable: RexCorrelVariable): Option[Expression] = None
 
-  override def visitRangeRef(rangeRef: RexRangeRef): Option[ResolvedExpression] = None
+  override def visitRangeRef(rangeRef: RexRangeRef): Option[Expression] = None
 
-  override def visitSubQuery(subQuery: RexSubQuery): Option[ResolvedExpression] = None
+  override def visitSubQuery(subQuery: RexSubQuery): Option[Expression] = None
 
-  override def visitDynamicParam(dynamicParam: RexDynamicParam): Option[ResolvedExpression] = None
+  override def visitDynamicParam(dynamicParam: RexDynamicParam): Option[Expression] = None
 
-  override def visitOver(over: RexOver): Option[ResolvedExpression] = None
+  override def visitOver(over: RexOver): Option[Expression] = None
 
-  override def visitPatternFieldRef(
-      fieldRef: RexPatternFieldRef): Option[ResolvedExpression] = None
+  override def visitPatternFieldRef(fieldRef: RexPatternFieldRef): Option[Expression] = None
 
-  private def lookupFunction(
-      name: String,
-      operands: Seq[ResolvedExpression],
-      outputType: DataType): Option[ResolvedExpression] = {
+  private def lookupFunction(name: String, operands: Seq[Expression]): Option[Expression] = {
     Try(functionCatalog.lookupFunction(name)) match {
       case Success(f: java.util.Optional[FunctionLookup.Result]) =>
         if (f.isPresent) {
-          Some(new CallExpression(f.get().getFunctionDefinition, operands, outputType))
+          Some(unresolvedCall(f.get().getFunctionDefinition, operands: _*))
         } else {
           None
         }

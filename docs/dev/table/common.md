@@ -31,7 +31,7 @@ Main Differences Between the Two Planners
 -----------------------------------------
 
 1. Blink treats batch jobs as a special case of streaming. As such, the conversion between Table and DataSet is also not supported, and batch jobs will not be translated into `DateSet` programs but translated into `DataStream` programs, the same as the streaming jobs.
-2. The Blink planner does not support `BatchTableSource`, use bounded `StreamTableSource` instead of it.
+2. The Blink planner does not support `BatchTableSource`, use bounded `StreamTableSource` instead of it. 
 3. The Blink planner only support the brand new `Catalog` and does not support `ExternalCatalog` which is deprecated.
 4. The implementations of `FilterableTableSource` for the old planner and the Blink planner are incompatible. The old planner will push down `PlannerExpression`s into `FilterableTableSource`, while the Blink planner will push down `Expression`s.
 5. String based key-value config options (Please see the documentation about [Configuration]({{ site.baseurl }}/dev/table/config.html) for details) are only used for the Blink planner.
@@ -54,7 +54,8 @@ TableEnvironment tableEnv = ...; // see "Create a TableEnvironment" section
 
 // register a Table
 tableEnv.registerTable("table1", ...)            // or
-tableEnv.registerTableSource("table2", ...);
+tableEnv.registerTableSource("table2", ...);     // or
+tableEnv.registerExternalCatalog("extCat", ...);
 // register an output Table
 tableEnv.registerTableSink("outputTable", ...);
 
@@ -80,7 +81,8 @@ val tableEnv = ... // see "Create a TableEnvironment" section
 
 // register a Table
 tableEnv.registerTable("table1", ...)           // or
-tableEnv.registerTableSource("table2", ...)
+tableEnv.registerTableSource("table2", ...)     // or
+tableEnv.registerExternalCatalog("extCat", ...)
 // register an output Table
 tableEnv.registerTableSink("outputTable", ...);
 
@@ -473,7 +475,50 @@ table_env.register_table_sink("CsvSinkTable", csv_sink)
 
 {% top %}
 
-Query a Table
+Register an External Catalog
+----------------------------
+
+An external catalog can provide information about external databases and tables such as their name, schema, statistics, and information for how to access data stored in an external database, table, or file.
+
+An external catalog can be created by implementing the `ExternalCatalog` interface and is registered in a `TableEnvironment` as follows:
+
+<div class="codetabs" markdown="1">
+<div data-lang="java" markdown="1">
+{% highlight java %}
+// get a TableEnvironment
+TableEnvironment tableEnv = ...; // see "Create a TableEnvironment" section
+
+// create an external catalog
+ExternalCatalog catalog = new InMemoryExternalCatalog();
+
+// register the ExternalCatalog catalog
+tableEnv.registerExternalCatalog("InMemCatalog", catalog);
+{% endhighlight %}
+</div>
+
+<div data-lang="scala" markdown="1">
+{% highlight scala %}
+// get a TableEnvironment
+val tableEnv = ... // see "Create a TableEnvironment" section
+
+// create an external catalog
+val catalog: ExternalCatalog = new InMemoryExternalCatalog
+
+// register the ExternalCatalog catalog
+tableEnv.registerExternalCatalog("InMemCatalog", catalog)
+{% endhighlight %}
+</div>
+</div>
+
+Once registered in a `TableEnvironment`, all tables defined in a `ExternalCatalog` can be accessed from Table API or SQL queries by specifying their full path, such as `catalog.database.table`.
+
+Currently, Flink provides an `InMemoryExternalCatalog` for demo and testing purposes. However, the `ExternalCatalog` interface can also be used to connect catalogs like HCatalog or Metastore to the Table API.
+
+**Note:** The Blink planner does not support external catalog.
+
+{% top %}
+
+Query a Table 
 -------------
 
 ### Table API
@@ -795,7 +840,7 @@ The behavior of translating and executing a query is different for the two plann
 
 <div class="codetabs" markdown="1">
 <div data-lang="Old planner" markdown="1">
-Table API and SQL queries are translated into [DataStream]({{ site.baseurl }}/dev/datastream_api.html) or [DataSet]({{ site.baseurl }}/dev/batch) programs depending on whether their input is a streaming or batch input. A query is internally represented as a logical query plan and is translated in two phases:
+Table API and SQL queries are translated into [DataStream]({{ site.baseurl }}/dev/datastream_api.html) or [DataSet]({{ site.baseurl }}/dev/batch) programs depending on whether their input is a streaming or batch input. A query is internally represented as a logical query plan and is translated in two phases: 
 
 1. Optimization of the logical plan
 2. Translation into a DataStream or DataSet program
@@ -811,9 +856,9 @@ Once translated, a Table API or SQL query is handled like a regular DataStream o
 </div>
 
 <div data-lang="Blink planner" markdown="1">
-Table API and SQL queries are translated into [DataStream]({{ site.baseurl }}/dev/datastream_api.html) programs whether their input is streaming or batch. A query is internally represented as a logical query plan and is translated in two phases:
+Table API and SQL queries are translated into [DataStream]({{ site.baseurl }}/dev/datastream_api.html) programs whether their input is streaming or batch. A query is internally represented as a logical query plan and is translated in two phases: 
 
-1. Optimization of the logical plan,
+1. Optimization of the logical plan, 
 2. Translation into a DataStream program.
 
 The behavior of translating  a query is different for `TableEnvironment` and `StreamTableEnvironment`.
@@ -1375,7 +1420,7 @@ Query Optimization
 
 Apache Flink leverages Apache Calcite to optimize and translate queries. The optimization currently performed include projection and filter push-down, subquery decorrelation, and other kinds of query rewriting. Old planner does not yet optimize the order of joins, but executes them in the same order as defined in the query (order of Tables in the `FROM` clause and/or order of join predicates in the `WHERE` clause).
 
-It is possible to tweak the set of optimization rules which are applied in different phases by providing a `CalciteConfig` object. This can be created via a builder by calling `CalciteConfig.createBuilder())` and is provided to the TableEnvironment by calling `tableEnv.getConfig.setPlannerConfig(calciteConfig)`.
+It is possible to tweak the set of optimization rules which are applied in different phases by providing a `CalciteConfig` object. This can be created via a builder by calling `CalciteConfig.createBuilder())` and is provided to the TableEnvironment by calling `tableEnv.getConfig.setPlannerConfig(calciteConfig)`. 
 
 </div>
 
@@ -1384,20 +1429,20 @@ It is possible to tweak the set of optimization rules which are applied in diffe
 Apache Flink leverages and extends Apache Calcite to perform sophisticated query optimization.
 This includes a series of rule and cost-based optimizations such as:
 
-* Subquery decorrelation based on Apache Calcite
+* Subquery decorrelation based on Apache Calcite 
 * Project pruning
 * Partition pruning
-* Filter push-down
-* Sub-plan deduplication to avoid duplicate computation
+* Filter push-down 
+* Sub-plan deduplication to avoid duplicate computation 
 * Special subquery rewriting, including two parts:
     * Converts IN and EXISTS into left semi-joins
-    * Converts NOT IN and NOT EXISTS into left anti-join
+    * Converts NOT IN and NOT EXISTS into left anti-join 
 * Optional join reordering
-    * Enabled via `table.optimizer.join-reorder-enabled`
+    * Enabled via `table.optimizer.join-reorder-enabled` 
 
 **Note:** IN/EXISTS/NOT IN/NOT EXISTS are currently only supported in conjunctive conditions in subquery rewriting.
 
-The optimizer makes intelligent decisions, based not only on the plan but also rich statistics available from the data sources and fine-grain costs for each operator such as io, cpu, network, and memory.
+The optimizer makes intelligent decisions, based not only on the plan but also rich statistics available from the data sources and fine-grain costs for each operator such as io, cpu, network, and memory. 
 
 Advanced users may provide custom optimizations via a `CalciteConfig` object that can be provided to the table environment by calling `TableEnvironment#getConfig#setPlannerConfig`.
 
@@ -1408,7 +1453,7 @@ Advanced users may provide custom optimizations via a `CalciteConfig` object tha
 ### Explaining a Table
 
 The Table API provides a mechanism to explain the logical and optimized query plans to compute a `Table`. 
-This is done through the `TableEnvironment.explain(table)` method or `TableEnvironment.explain()` method. `explain(table)` returns the plan of a given `Table`. `explain()` returns the result of a multiple-sinks plan and is mainly used for the Blink planner. It returns a String describing three plans:
+This is done through the `TableEnvironment.explain(table)` method or `TableEnvironment.explain()` method. `explain(table)` returns the plan of a given `Table`. `explain()` returns the result of a multiple-sinks plan and is mainly used for the Blink planner. It returns a String describing three plans: 
 
 1. the Abstract Syntax Tree of the relational query, i.e., the unoptimized logical query plan,
 2. the optimized logical query plan, and
@@ -1655,7 +1700,7 @@ t_env.register_table_source("MySource1", CsvTableSource("/source/path1", field_n
 t_env.register_table_source("MySource2", CsvTableSource("/source/path2", field_names, field_types))
 t_env.register_table_sink("MySink1", CsvTableSink("/sink/path1", field_names, field_types))
 t_env.register_table_sink("MySink2", CsvTableSink("/sink/path2", field_names, field_types))
-
+            
 table1 = t_env.scan("MySource1").where("LIKE(word, 'F%')")
 table1.insert_into("MySink1")
 

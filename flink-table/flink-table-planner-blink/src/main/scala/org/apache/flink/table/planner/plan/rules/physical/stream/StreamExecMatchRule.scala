@@ -29,9 +29,10 @@ import org.apache.calcite.plan.{RelOptRule, RelOptRuleCall, RelTraitSet}
 import org.apache.calcite.rel.RelNode
 import org.apache.calcite.rel.`type`.RelDataType
 import org.apache.calcite.rel.convert.ConverterRule
-import org.apache.calcite.rex.{RexCall, RexNode}
+import org.apache.calcite.rex.{RexCall, RexInputRef, RexNode}
 import org.apache.calcite.sql.SqlAggFunction
-import org.apache.calcite.util.ImmutableBitSet
+
+import java.util.{List => JList}
 
 import scala.collection.JavaConverters._
 import scala.collection.mutable
@@ -98,31 +99,41 @@ class StreamExecMatchRule
     if (logicalMatch.isAllRows) {
       throw new TableException("All rows per match mode is not supported yet.")
     } else {
+      val refNameFinder = new RefNameFinder(logicalMatch.getInput.getRowType)
       validateAmbiguousColumnsOnRowPerMatch(
         logicalMatch.getPartitionKeys,
         logicalMatch.getMeasures.keySet().asScala,
-        logicalMatch.getInput.getRowType,
-        logicalMatch.getRowType)
+        logicalMatch.getRowType,
+        refNameFinder)
     }
   }
 
   private def validateAmbiguousColumnsOnRowPerMatch(
-    partitionKeys: ImmutableBitSet,
+    partitionKeys: JList[RexNode],
     measuresNames: mutable.Set[String],
-    inputSchema: RelDataType,
-    expectedSchema: RelDataType)
+    expectedSchema: RelDataType,
+    refNameFinder: RefNameFinder)
   : Unit = {
-    val actualSize = partitionKeys.toArray.length + measuresNames.size
+    val actualSize = partitionKeys.size() + measuresNames.size
     val expectedSize = expectedSchema.getFieldCount
     if (actualSize != expectedSize) {
       //try to find ambiguous column
 
-      val ambiguousColumns = partitionKeys.toArray
-        .map(inputSchema.getFieldList.get(_).getName)
+      val ambiguousColumns = partitionKeys.asScala.map(_.accept(refNameFinder))
         .filter(measuresNames.contains).mkString("{", ", ", "}")
 
       throw new ValidationException(s"Columns ambiguously defined: $ambiguousColumns")
     }
+  }
+
+  private class RefNameFinder(inputSchema: RelDataType) extends RexDefaultVisitor[String] {
+
+    override def visitInputRef(inputRef: RexInputRef): String = {
+      inputSchema.getFieldList.get(inputRef.getIndex).getName
+    }
+
+    override def visitNode(rexNode: RexNode): String =
+      throw new TableException(s"PARTITION BY clause accepts only input reference. Found $rexNode")
   }
 
   private class AggregationsValidator extends RexDefaultVisitor[Object] {

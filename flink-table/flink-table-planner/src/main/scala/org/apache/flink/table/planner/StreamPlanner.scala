@@ -25,7 +25,7 @@ import org.apache.flink.sql.parser.dml.RichSqlInsert
 import org.apache.flink.streaming.api.datastream.{DataStream, DataStreamSink}
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment
 import org.apache.flink.table.api._
-import org.apache.flink.table.calcite.{CalciteConfig, FlinkPlannerImpl, FlinkRelBuilder, FlinkTypeFactory}
+import org.apache.flink.table.calcite.{CalciteConfig, FlinkPlannerImpl, FlinkRelBuilder, FlinkTypeFactory, PreValidateReWriter}
 import org.apache.flink.table.catalog.{CatalogManager, CatalogManagerCalciteSchema, CatalogTable, ConnectorCatalogTable, _}
 import org.apache.flink.table.delegation.{Executor, Planner}
 import org.apache.flink.table.executor.StreamExecutor
@@ -53,8 +53,8 @@ import _root_.java.lang.{Boolean => JBool}
 import _root_.java.util
 import _root_.java.util.{Objects, List => JList}
 
-import _root_.scala.collection.JavaConversions._
 import _root_.scala.collection.JavaConverters._
+import _root_.scala.collection.JavaConversions._
 
 /**
   * Implementation of [[Planner]] for legacy Flink planner. It supports only streaming use cases.
@@ -151,13 +151,12 @@ class StreamPlanner(
         writeToSink(s.getChild, s.getSink, unwrapQueryConfig)
 
       case catalogSink: CatalogSinkModifyOperation =>
-        val identifier = catalogManager.qualifyIdentifier(catalogSink.getTablePath: _*)
-        getTableSink(identifier)
+        getTableSink(catalogSink.getTablePath)
           .map(sink => {
             TableSinkUtils.validateSink(
               catalogSink.getStaticPartitions,
               catalogSink.getChild,
-              identifier,
+              catalogSink.getTablePath,
               sink)
             // set static partitions if it is a partitioned sink
             sink match {
@@ -166,15 +165,6 @@ class StreamPlanner(
                   && partitionableSink.getPartitionFieldNames.nonEmpty =>
                 partitionableSink.setStaticPartition(catalogSink.getStaticPartitions)
               case _ =>
-            }
-            // set whether to overwrite if it's an OverwritableTableSink
-            sink match {
-              case overwritableTableSink: OverwritableTableSink =>
-                overwritableTableSink.setOverwrite(catalogSink.isOverwrite)
-              case _ =>
-                assert(!catalogSink.isOverwrite, "INSERT OVERWRITE requires " +
-                  s"${classOf[OverwritableTableSink].getSimpleName} but actually got " +
-                  sink.getClass.getName)
             }
             writeToSink(catalogSink.getChild, sink, unwrapQueryConfig)
           }) match {
@@ -454,19 +444,28 @@ class StreamPlanner(
     TableSchema.builder().fields(originalNames, fieldTypes).build()
   }
 
-  private def getTableSink(objectIdentifier: ObjectIdentifier): Option[TableSink[_]] = {
-    JavaScalaConversionUtil.toScala(catalogManager.getTable(objectIdentifier)) match {
-      case Some(s) if s.isInstanceOf[ConnectorCatalogTable[_, _]] =>
-        JavaScalaConversionUtil.toScala(s.asInstanceOf[ConnectorCatalogTable[_, _]].getTableSink)
+  private def getTableSink(tablePath: JList[String]): Option[TableSink[_]] = {
+    JavaScalaConversionUtil.toScala(catalogManager.resolveTable(tablePath.asScala: _*)) match {
+      case Some(s) if s.getExternalCatalogTable.isPresent =>
 
-      case Some(s) if s.isInstanceOf[CatalogTable] =>
-        val catalog = catalogManager.getCatalog(objectIdentifier.getCatalogName)
-        val catalogTable = s.asInstanceOf[CatalogTable]
+        Option(TableFactoryUtil.findAndCreateTableSink(s.getExternalCatalogTable.get()))
+
+      case Some(s) if JavaScalaConversionUtil.toScala(s.getCatalogTable)
+        .exists(_.isInstanceOf[ConnectorCatalogTable[_, _]]) =>
+
+        JavaScalaConversionUtil
+          .toScala(s.getCatalogTable.get().asInstanceOf[ConnectorCatalogTable[_, _]].getTableSink)
+
+      case Some(s) if JavaScalaConversionUtil.toScala(s.getCatalogTable)
+        .exists(_.isInstanceOf[CatalogTable]) =>
+
+        val catalog = catalogManager.getCatalog(s.getTablePath.get(0))
+        val catalogTable = s.getCatalogTable.get().asInstanceOf[CatalogTable]
         if (catalog.isPresent && catalog.get().getTableFactory.isPresent) {
+          val dbName = s.getTablePath.get(1)
+          val tableName = s.getTablePath.get(2)
           val sink = TableFactoryUtil.createTableSinkForCatalogTable(
-            catalog.get(),
-            catalogTable,
-            objectIdentifier.toObjectPath)
+            catalog.get(), catalogTable, new ObjectPath(dbName, tableName))
           if (sink.isPresent) {
             return Option(sink.get())
           }

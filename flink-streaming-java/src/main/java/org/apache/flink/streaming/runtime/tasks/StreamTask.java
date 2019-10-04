@@ -20,14 +20,9 @@ package org.apache.flink.streaming.runtime.tasks;
 import org.apache.flink.annotation.Internal;
 import org.apache.flink.annotation.VisibleForTesting;
 import org.apache.flink.api.common.accumulators.Accumulator;
-import org.apache.flink.configuration.NettyShuffleEnvironmentOptions;
 import org.apache.flink.configuration.TaskManagerOptions;
 import org.apache.flink.core.fs.CloseableRegistry;
 import org.apache.flink.core.fs.FileSystemSafetyNet;
-import org.apache.flink.metrics.Counter;
-import org.apache.flink.metrics.SimpleCounter;
-import org.apache.flink.runtime.checkpoint.CheckpointException;
-import org.apache.flink.runtime.checkpoint.CheckpointFailureReason;
 import org.apache.flink.runtime.checkpoint.CheckpointMetaData;
 import org.apache.flink.runtime.checkpoint.CheckpointMetrics;
 import org.apache.flink.runtime.checkpoint.CheckpointOptions;
@@ -40,7 +35,6 @@ import org.apache.flink.runtime.io.network.api.writer.RecordWriterBuilder;
 import org.apache.flink.runtime.io.network.api.writer.ResultPartitionWriter;
 import org.apache.flink.runtime.jobgraph.OperatorID;
 import org.apache.flink.runtime.jobgraph.tasks.AbstractInvokable;
-import org.apache.flink.runtime.metrics.groups.OperatorMetricGroup;
 import org.apache.flink.runtime.plugable.SerializationDelegate;
 import org.apache.flink.runtime.state.CheckpointStorageWorkerView;
 import org.apache.flink.runtime.state.CheckpointStreamFactory;
@@ -58,21 +52,17 @@ import org.apache.flink.streaming.api.operators.OperatorSnapshotFutures;
 import org.apache.flink.streaming.api.operators.StreamOperator;
 import org.apache.flink.streaming.api.operators.StreamTaskStateInitializer;
 import org.apache.flink.streaming.api.operators.StreamTaskStateInitializerImpl;
-import org.apache.flink.streaming.runtime.io.InputStatus;
 import org.apache.flink.streaming.runtime.io.RecordWriterOutput;
 import org.apache.flink.streaming.runtime.io.StreamInputProcessor;
 import org.apache.flink.streaming.runtime.partitioner.ConfigurableStreamPartitioner;
 import org.apache.flink.streaming.runtime.partitioner.StreamPartitioner;
 import org.apache.flink.streaming.runtime.streamrecord.StreamRecord;
 import org.apache.flink.streaming.runtime.streamstatus.StreamStatusMaintainer;
-import org.apache.flink.streaming.runtime.tasks.mailbox.TaskMailbox;
-import org.apache.flink.streaming.runtime.tasks.mailbox.execution.DefaultActionContext;
-import org.apache.flink.streaming.runtime.tasks.mailbox.execution.MailboxExecutor;
-import org.apache.flink.streaming.runtime.tasks.mailbox.execution.MailboxExecutorFactory;
-import org.apache.flink.streaming.runtime.tasks.mailbox.execution.MailboxProcessor;
-import org.apache.flink.streaming.runtime.tasks.mailbox.execution.SuspendedMailboxDefaultAction;
+import org.apache.flink.streaming.runtime.tasks.mailbox.Mailbox;
+import org.apache.flink.streaming.runtime.tasks.mailbox.MailboxImpl;
 import org.apache.flink.util.ExceptionUtils;
 import org.apache.flink.util.Preconditions;
+import org.apache.flink.util.function.ThrowingRunnable;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -84,10 +74,9 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.OptionalLong;
+import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -140,7 +129,13 @@ public abstract class StreamTask<OUT, OP extends StreamOperator<OUT>>
 	public static final ThreadGroup TRIGGER_THREAD_GROUP = new ThreadGroup("Triggers");
 
 	/** The logger used by the StreamTask and its subclasses. */
-	protected static final Logger LOG = LoggerFactory.getLogger(StreamTask.class);
+	private static final Logger LOG = LoggerFactory.getLogger(StreamTask.class);
+
+	/** Special value, letter that terminates the mailbox loop. */
+	private static final Runnable POISON_LETTER = () -> {};
+
+	/** Special value, letter that "wakes up" a waiting mailbox loop. */
+	private static final Runnable DEFAULT_ACTION_AVAILABLE = () -> {};
 
 	// ------------------------------------------------------------------------
 
@@ -200,11 +195,14 @@ public abstract class StreamTask<OUT, OP extends StreamOperator<OUT>>
 	/** Thread pool for async snapshot workers. */
 	private ExecutorService asyncOperationsThreadPool;
 
+	/** Handler for exceptions during checkpointing in the stream task. Used in synchronous part of the checkpoint. */
+	private CheckpointExceptionHandler checkpointExceptionHandler;
+
 	private final List<RecordWriter<SerializationDelegate<StreamRecord<OUT>>>> recordWriters;
 
-	protected final MailboxProcessor mailboxProcessor;
+	private final SynchronousSavepointLatch syncSavepointLatch;
 
-	private Long syncSavepointId = null;
+	protected final Mailbox mailbox;
 
 	// ------------------------------------------------------------------------
 
@@ -250,7 +248,8 @@ public abstract class StreamTask<OUT, OP extends StreamOperator<OUT>>
 		this.configuration = new StreamConfig(getTaskConfiguration());
 		this.accumulatorMap = getEnvironment().getAccumulatorRegistry().getUserMap();
 		this.recordWriters = createRecordWriters(configuration, environment);
-		this.mailboxProcessor = new MailboxProcessor(this::processInput);
+		this.syncSavepointLatch = new SynchronousSavepointLatch();
+		this.mailbox = new MailboxImpl();
 		this.asyncExceptionHandler = new StreamTaskAsyncExceptionHandler(environment);
 	}
 
@@ -276,43 +275,30 @@ public abstract class StreamTask<OUT, OP extends StreamOperator<OUT>>
 	 * @param context context object for collaborative interaction between the action and the stream task.
 	 * @throws Exception on any problems in the action.
 	 */
-	protected void processInput(DefaultActionContext context) throws Exception {
-		InputStatus status = inputProcessor.processInput();
-		if (status == InputStatus.END_OF_INPUT) {
+	protected void processInput(ActionContext context) throws Exception {
+		if (!inputProcessor.processInput()) {
 			context.allActionsCompleted();
 		}
-		else if (status == InputStatus.NOTHING_AVAILABLE){
-			SuspendedMailboxDefaultAction suspendedDefaultAction = context.suspendDefaultAction();
-			inputProcessor.isAvailable().thenRun(suspendedDefaultAction::resume);
-		}
 	}
 
-	private void resetSynchronousSavepointId() {
-		syncSavepointId = null;
-	}
+	/**
+	 * Runs the stream-tasks main processing loop.
+	 */
+	private void run() throws Exception {
+		final ActionContext actionContext = new ActionContext();
+		while (true) {
+			if (mailbox.hasMail()) {
+				Optional<Runnable> maybeLetter;
+				while ((maybeLetter = mailbox.tryTakeMail()).isPresent()) {
+					Runnable letter = maybeLetter.get();
+					if (letter == POISON_LETTER) {
+						return;
+					}
+					letter.run();
+				}
+			}
 
-	private void setSynchronousSavepointId(long checkpointId) {
-		Preconditions.checkState(
-			syncSavepointId == null, "at most one stop-with-savepoint checkpoint at a time is allowed");
-		syncSavepointId = checkpointId;
-	}
-
-	@VisibleForTesting
-	OptionalLong getSynchronousSavepointId() {
-		return syncSavepointId != null ? OptionalLong.of(syncSavepointId) : OptionalLong.empty();
-	}
-
-	private boolean isSynchronousSavepointId(long checkpointId) {
-		return syncSavepointId != null && syncSavepointId == checkpointId;
-	}
-
-	private void runSynchronousSavepointMailboxLoop() throws Exception {
-		assert syncSavepointId != null;
-
-		MailboxExecutor mailboxExecutor = mailboxProcessor.getMailboxExecutor(TaskMailbox.MAX_PRIORITY);
-
-		while (!canceled && syncSavepointId != null) {
-			mailboxExecutor.yield();
+			processInput(actionContext);
 		}
 	}
 
@@ -334,7 +320,7 @@ public abstract class StreamTask<OUT, OP extends StreamOperator<OUT>>
 	 * Instructs the task to go through its normal termination routine, i.e. exit the run-loop
 	 * and call {@link StreamOperator#close()} and {@link StreamOperator#dispose()} on its operators.
 	 *
-	 * <p>This is used by the source task to get out of the run-loop when the job is stopped with a savepoint.
+	 * <p>This is used by the source task to get out of the run-loop when the job is stoppped with a savepoint.
 	 *
 	 * <p>For tasks other than the source task, this method does nothing.
 	 */
@@ -353,13 +339,9 @@ public abstract class StreamTask<OUT, OP extends StreamOperator<OUT>>
 			timerService);
 	}
 
-	protected Counter setupNumRecordsInCounter(StreamOperator streamOperator) {
-		try {
-			return ((OperatorMetricGroup) streamOperator.getMetricGroup()).getIOMetricGroup().getNumRecordsInCounter();
-		} catch (Exception e) {
-			LOG.warn("An exception occurred during the metrics setup.", e);
-			return new SimpleCounter();
-		}
+	@VisibleForTesting
+	SynchronousSavepointLatch getSynchronousSavepointLatch() {
+		return syncSavepointLatch;
 	}
 
 	@Override
@@ -372,22 +354,24 @@ public abstract class StreamTask<OUT, OP extends StreamOperator<OUT>>
 
 			asyncOperationsThreadPool = Executors.newCachedThreadPool(new ExecutorThreadFactory("AsyncOperations", uncaughtExceptionHandler));
 
+			CheckpointExceptionHandlerFactory cpExceptionHandlerFactory = createCheckpointExceptionHandlerFactory();
+
+			checkpointExceptionHandler = cpExceptionHandlerFactory
+				.createCheckpointExceptionHandler(getEnvironment());
+
 			stateBackend = createStateBackend();
 			checkpointStorage = stateBackend.createCheckpointStorage(getEnvironment().getJobID());
 
 			// if the clock is not already set, then assign a default TimeServiceProvider
 			if (timerService == null) {
-				ThreadFactory timerThreadFactory =
-					new DispatcherThreadFactory(TRIGGER_THREAD_GROUP, "Time Trigger for " + getName());
+				ThreadFactory timerThreadFactory = new DispatcherThreadFactory(TRIGGER_THREAD_GROUP,
+					"Time Trigger for " + getName(), getUserCodeClassLoader());
 
-				timerService = new SystemProcessingTimeService(new TimerInvocationContext(), timerThreadFactory);
+				timerService = new SystemProcessingTimeService(this, getCheckpointLock(), timerThreadFactory);
 			}
 
 			operatorChain = new OperatorChain<>(this, recordWriters);
 			headOperator = operatorChain.getHeadOperator();
-
-			// check environment for selective reading
-			checkSelectiveReadingEnv();
 
 			// task specific initialization
 			init();
@@ -419,7 +403,7 @@ public abstract class StreamTask<OUT, OP extends StreamOperator<OUT>>
 
 			// let the task do its work
 			isRunning = true;
-			mailboxProcessor.runMailboxLoop();
+			run();
 
 			// if this left the run() method cleanly despite the fact that this was canceled,
 			// make sure the "clean shutdown" is not attempted
@@ -441,16 +425,9 @@ public abstract class StreamTask<OUT, OP extends StreamOperator<OUT>>
 				// make sure no new timers can come
 				timerService.quiesce();
 
-				// let mailbox execution reject all new letters from this point
-				mailboxProcessor.prepareClose();
-
 				// only set the StreamTask to not running after all operators have been closed!
 				// See FLINK-7430
 				isRunning = false;
-			}
-			MailboxExecutor mainMailboxExecutor = mailboxProcessor.getMainMailboxExecutor();
-			while (mainMailboxExecutor.tryYield()) {
-				// Run until we have processed all remaining letters.
 			}
 
 			// make sure all timers finish
@@ -515,29 +492,24 @@ public abstract class StreamTask<OUT, OP extends StreamOperator<OUT>>
 					operatorChain.releaseOutputs();
 				}
 			}
-
-			mailboxProcessor.close();
 		}
 	}
 
 	@Override
 	public final void cancel() throws Exception {
+		mailbox.clearAndPut(POISON_LETTER);
 		isRunning = false;
 		canceled = true;
 
 		// the "cancel task" call must come first, but the cancelables must be
 		// closed no matter what
 		try {
+			syncSavepointLatch.cancelCheckpointLatch();
 			cancelTask();
 		}
 		finally {
-			mailboxProcessor.allActionsCompleted();
 			cancelables.close();
 		}
-	}
-
-	public MailboxExecutorFactory getMailboxExecutorFactory() {
-		return this.mailboxProcessor::getMailboxExecutor;
 	}
 
 	public final boolean isRunning() {
@@ -645,19 +617,6 @@ public abstract class StreamTask<OUT, OP extends StreamOperator<OUT>>
 		return tc == TimeCharacteristic.EventTime | tc == TimeCharacteristic.IngestionTime;
 	}
 
-	private void checkSelectiveReadingEnv() {
-		boolean isCreditBased = getEnvironment()
-			.getTaskManagerInfo()
-			.getConfiguration()
-			.getBoolean(NettyShuffleEnvironmentOptions.NETWORK_CREDIT_MODEL);
-
-		if (!isCreditBased && operatorChain.hasSelectiveReadingOperator()) {
-			throw new UnsupportedOperationException(
-				"The operator that implements the InputSelectable interface is not supported in the non-credited" +
-					" network mode. (please set 'taskmanager.network.credit-model' to 'true')");
-		}
-	}
-
 	// ------------------------------------------------------------------------
 	//  Access to properties and utilities
 	// ------------------------------------------------------------------------
@@ -713,37 +672,30 @@ public abstract class StreamTask<OUT, OP extends StreamOperator<OUT>>
 	// ------------------------------------------------------------------------
 
 	@Override
-	public Future<Boolean> triggerCheckpointAsync(
+	public boolean triggerCheckpoint(
 			CheckpointMetaData checkpointMetaData,
 			CheckpointOptions checkpointOptions,
-			boolean advanceToEndOfEventTime) {
+			boolean advanceToEndOfEventTime) throws Exception {
 
-		return mailboxProcessor.getMainMailboxExecutor().submit(() -> {
-			try {
-				// No alignment if we inject a checkpoint
-				CheckpointMetrics checkpointMetrics = new CheckpointMetrics()
+		try {
+			// No alignment if we inject a checkpoint
+			CheckpointMetrics checkpointMetrics = new CheckpointMetrics()
 					.setBytesBufferedInAlignment(0L)
 					.setAlignmentDurationNanos(0L);
 
-				boolean success = performCheckpoint(checkpointMetaData, checkpointOptions, checkpointMetrics, advanceToEndOfEventTime);
-				if (!success) {
-					declineCheckpoint(checkpointMetaData.getCheckpointId());
-				}
-				return success;
-			} catch (Exception e) {
-				// propagate exceptions only if the task is still in "running" state
-				if (isRunning) {
-					Exception exception = new Exception("Could not perform checkpoint " + checkpointMetaData.getCheckpointId() +
-						" for operator " + getName() + '.', e);
-					handleCheckpointException(exception);
-					throw exception;
-				} else {
-					LOG.debug("Could not perform checkpoint {} for operator {} while the " +
-						"invokable was not in state running.", checkpointMetaData.getCheckpointId(), getName(), e);
-					return false;
-				}
+			return performCheckpoint(checkpointMetaData, checkpointOptions, checkpointMetrics, advanceToEndOfEventTime);
+		}
+		catch (Exception e) {
+			// propagate exceptions only if the task is still in "running" state
+			if (isRunning) {
+				throw new Exception("Could not perform checkpoint " + checkpointMetaData.getCheckpointId() +
+					" for operator " + getName() + '.', e);
+			} else {
+				LOG.debug("Could not perform checkpoint {} for operator {} while the " +
+					"invokable was not in state running.", checkpointMetaData.getCheckpointId(), getName(), e);
+				return false;
 			}
-		});
+		}
 	}
 
 	@Override
@@ -754,8 +706,8 @@ public abstract class StreamTask<OUT, OP extends StreamOperator<OUT>>
 
 		try {
 			if (performCheckpoint(checkpointMetaData, checkpointOptions, checkpointMetrics, false)) {
-				if (isSynchronousSavepointId(checkpointMetaData.getCheckpointId())) {
-					runSynchronousSavepointMailboxLoop();
+				if (syncSavepointLatch.isSet()) {
+					syncSavepointLatch.blockUntilCheckpointIsAcknowledged();
 				}
 			}
 		}
@@ -798,7 +750,7 @@ public abstract class StreamTask<OUT, OP extends StreamOperator<OUT>>
 			if (isRunning) {
 
 				if (checkpointOptions.getCheckpointType().isSynchronous()) {
-					setSynchronousSavepointId(checkpointId);
+					syncSavepointLatch.setCheckpointId(checkpointId);
 
 					if (advanceToEndOfTime) {
 						advanceToEndOfEventTime();
@@ -854,53 +806,32 @@ public abstract class StreamTask<OUT, OP extends StreamOperator<OUT>>
 		}
 	}
 
-	protected void declineCheckpoint(long checkpointId) {
-		getEnvironment().declineCheckpoint(
-			checkpointId,
-			new CheckpointException("Task Name" + getName(), CheckpointFailureReason.CHECKPOINT_DECLINED_TASK_NOT_READY));
-	}
-
-	protected void handleCheckpointException(Exception exception) {
-		handleException(exception);
-	}
-
 	public ExecutorService getAsyncOperationsThreadPool() {
 		return asyncOperationsThreadPool;
 	}
 
 	@Override
-	public Future<Void> notifyCheckpointCompleteAsync(long checkpointId) {
-		return mailboxProcessor.getMailboxExecutor(TaskMailbox.MAX_PRIORITY).submit(() -> {
-			try {
-				boolean success = false;
-				synchronized (lock) {
-					if (isRunning) {
-						LOG.debug("Notification of complete checkpoint for task {}", getName());
+	public void notifyCheckpointComplete(long checkpointId) throws Exception {
+		boolean success = false;
+		synchronized (lock) {
+			if (isRunning) {
+				LOG.debug("Notification of complete checkpoint for task {}", getName());
 
-						for (StreamOperator<?> operator : operatorChain.getAllOperators()) {
-							if (operator != null) {
-								operator.notifyCheckpointComplete(checkpointId);
-							}
-						}
-						success = true;
-					} else {
-						LOG.debug("Ignoring notification of complete checkpoint for not-running task {}", getName());
+				for (StreamOperator<?> operator : operatorChain.getAllOperators()) {
+					if (operator != null) {
+						operator.notifyCheckpointComplete(checkpointId);
 					}
 				}
-				getEnvironment().getTaskStateManager().notifyCheckpointComplete(checkpointId);
-				if (success && isSynchronousSavepointId(checkpointId)) {
-					finishTask();
-					// Reset to "notify" the internal synchronous savepoint mailbox loop.
-					resetSynchronousSavepointId();
-				}
-				return null;
-			} catch (Exception e) {
-				handleException(new RuntimeException(
-					"Error while confirming checkpoint",
-					e));
-				throw e;
+
+				success = true;
 			}
-		});
+			else {
+				LOG.debug("Ignoring notification of complete checkpoint for not-running task {}", getName());
+			}
+		}
+		if (success) {
+			syncSavepointLatch.acknowledgeCheckpointAndTrigger(checkpointId, this::finishTask);
+		}
 	}
 
 	private void tryShutdownTimerService() {
@@ -966,6 +897,10 @@ public abstract class StreamTask<OUT, OP extends StreamOperator<OUT>>
 				LOG);
 	}
 
+	protected CheckpointExceptionHandlerFactory createCheckpointExceptionHandlerFactory() {
+		return new CheckpointExceptionHandlerFactory();
+	}
+
 	/**
 	 * Returns the {@link ProcessingTimeService} responsible for telling the current
 	 * processing time and registering timers.
@@ -995,12 +930,6 @@ public abstract class StreamTask<OUT, OP extends StreamOperator<OUT>>
 		if (isRunning) {
 			// only fail if the task is still running
 			asyncExceptionHandler.handleAsyncException(message, exception);
-		}
-	}
-
-	private void handleException(Throwable exception) {
-		if (isRunning) {
-			getEnvironment().failExternally(exception);
 		}
 	}
 
@@ -1174,7 +1103,7 @@ public abstract class StreamTask<OUT, OP extends StreamOperator<OUT>>
 					// We only report the exception for the original cause of fail and cleanup.
 					// Otherwise this followup exception could race the original exception in failing the task.
 					try {
-						owner.getEnvironment().declineCheckpoint(checkpointMetaData.getCheckpointId(), checkpointException);
+						owner.checkpointExceptionHandler.tryHandleCheckpointException(checkpointMetaData, checkpointException);
 					} catch (Exception unhandled) {
 						AsynchronousException asyncException = new AsynchronousException(unhandled);
 						owner.handleAsyncException("Failure in asynchronous checkpoint materialization", asyncException);
@@ -1336,12 +1265,12 @@ public abstract class StreamTask<OUT, OP extends StreamOperator<OUT>>
 
 				if (checkpointOptions.getCheckpointType().isSynchronous()) {
 					// in the case of a synchronous checkpoint, we always rethrow the exception,
-					// so that the task fails.
+					// so that the task fails (as if we had the FailingCheckpointExceptionHandler).
 					// this is because the intention is always to stop the job after this checkpointing
 					// operation, and without the failure, the task would go back to normal execution.
 					throw ex;
 				} else {
-					owner.getEnvironment().declineCheckpoint(checkpointMetaData.getCheckpointId(), ex);
+					owner.checkpointExceptionHandler.tryHandleCheckpointException(checkpointMetaData, ex);
 				}
 			}
 		}
@@ -1417,22 +1346,39 @@ public abstract class StreamTask<OUT, OP extends StreamOperator<OUT>>
 		return output;
 	}
 
-	private class TimerInvocationContext implements SystemProcessingTimeService.ScheduledCallbackExecutionContext {
-		@Override
-		public void invoke(ProcessingTimeCallback callback, long timestamp) {
-			try {
-				mailboxProcessor.getMailboxExecutor(TaskMailbox.MAX_PRIORITY).execute(() -> {
-					synchronized (getCheckpointLock()) {
-						try {
-							callback.onProcessingTime(timestamp);
-						} catch (Throwable t) {
-							handleAsyncException("Caught exception while processing timer.", new TimerException(t));
-						}
-					}
-				});
-			} catch (Throwable t) {
-				handleAsyncException("Caught exception while processing timer.", new TimerException(t));
-			}
+	/**
+	 * The action context is passed as parameter into the default action method and holds control methods for feedback
+	 * of from the default action to the mailbox.
+	 */
+	public final class ActionContext {
+
+		private final Runnable actionUnavailableLetter = ThrowingRunnable.unchecked(mailbox::waitUntilHasMail);
+
+		/**
+		 * This method must be called to end the stream task when all actions for the tasks have been performed.
+		 */
+		public void allActionsCompleted() {
+			mailbox.clearAndPut(POISON_LETTER);
+		}
+
+		/**
+		 * Calling this method signals that the mailbox-thread should continue invoking the default action, e.g. because
+		 * new input became available for processing.
+		 *
+		 * @throws InterruptedException on interruption.
+		 */
+		public void actionsAvailable() throws InterruptedException {
+			mailbox.putMail(DEFAULT_ACTION_AVAILABLE);
+		}
+
+		/**
+		 * Calling this method signals that the mailbox-thread should (temporarily) stop invoking the default action,
+		 * e.g. because there is currently no input available.
+		 *
+		 * @throws InterruptedException on interruption.
+		 */
+		public void actionsUnavailable() throws InterruptedException {
+			mailbox.putMail(actionUnavailableLetter);
 		}
 	}
 }

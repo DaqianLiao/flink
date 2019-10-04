@@ -145,12 +145,8 @@ object FlinkLogicalRelFactories {
     * Implementation of [[FilterFactory]] that returns a [[FlinkLogicalCalc]].
     */
   class FilterFactoryImpl extends FilterFactory {
-    override def createFilter(
-        input: RelNode,
-        condition: RexNode,
-        variablesSet: util.Set[CorrelationId]): RelNode = {
+    def createFilter(input: RelNode, condition: RexNode): RelNode = {
       // Create a program containing a filter.
-      // Ignore the variablesSet for current implementation.
       val rexBuilder = input.getCluster.getRexBuilder
       val inputRowType = input.getRowType
       val programBuilder = new RexProgramBuilder(inputRowType, rexBuilder)

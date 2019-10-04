@@ -61,7 +61,6 @@ import org.apache.flink.runtime.taskmanager.CheckpointResponder;
 import org.apache.flink.runtime.taskmanager.Task;
 import org.apache.flink.runtime.taskmanager.TaskManagerActions;
 import org.apache.flink.runtime.util.TestingTaskManagerRuntimeInfo;
-import org.apache.flink.streaming.runtime.tasks.mailbox.execution.DefaultActionContext;
 import org.apache.flink.util.SerializedValue;
 
 import org.junit.Rule;
@@ -70,7 +69,6 @@ import org.junit.rules.Timeout;
 
 import java.util.Collections;
 import java.util.concurrent.Executor;
-import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
 
 import static org.hamcrest.Matchers.is;
@@ -139,7 +137,7 @@ public class SynchronousCheckpointITCase {
 		}
 
 		@Override
-		protected void processInput(DefaultActionContext context) throws Exception {
+		protected void processInput(ActionContext context) throws Exception {
 			if (!isRunning) {
 				isRunning = true;
 				eventQueue.put(Event.TASK_IS_RUNNING);
@@ -147,34 +145,23 @@ public class SynchronousCheckpointITCase {
 			if (isCanceled()) {
 				context.allActionsCompleted();
 			} else {
-				context.suspendDefaultAction();
+				context.actionsUnavailable();
 			}
 		}
 
 		@Override
-		public Future<Boolean> triggerCheckpointAsync(CheckpointMetaData checkpointMetaData, CheckpointOptions checkpointOptions, boolean advanceToEndOfEventTime) {
-			try {
-				eventQueue.put(Event.PRE_TRIGGER_CHECKPOINT);
-				Future<Boolean> result = super.triggerCheckpointAsync(checkpointMetaData, checkpointOptions, advanceToEndOfEventTime);
-				eventQueue.put(Event.POST_TRIGGER_CHECKPOINT);
-				return result;
-			} catch (InterruptedException e) {
-				Thread.currentThread().interrupt();
-				throw new RuntimeException(e);
-			}
+		public boolean triggerCheckpoint(CheckpointMetaData checkpointMetaData, CheckpointOptions checkpointOptions, boolean advanceToEndOfEventTime) throws Exception {
+			eventQueue.put(Event.PRE_TRIGGER_CHECKPOINT);
+			boolean result = super.triggerCheckpoint(checkpointMetaData, checkpointOptions, advanceToEndOfEventTime);
+			eventQueue.put(Event.POST_TRIGGER_CHECKPOINT);
+			return result;
 		}
 
 		@Override
-		public Future<Void> notifyCheckpointCompleteAsync(long checkpointId) {
-			try {
-				eventQueue.put(Event.PRE_NOTIFY_CHECKPOINT_COMPLETE);
-				Future<Void> result = super.notifyCheckpointCompleteAsync(checkpointId);
-				eventQueue.put(Event.POST_NOTIFY_CHECKPOINT_COMPLETE);
-				return result;
-			} catch (InterruptedException e) {
-				Thread.currentThread().interrupt();
-				throw new RuntimeException(e);
-			}
+		public void notifyCheckpointComplete(long checkpointId) throws Exception {
+			eventQueue.put(Event.PRE_NOTIFY_CHECKPOINT_COMPLETE);
+			super.notifyCheckpointComplete(checkpointId);
+			eventQueue.put(Event.POST_NOTIFY_CHECKPOINT_COMPLETE);
 		}
 
 		@Override

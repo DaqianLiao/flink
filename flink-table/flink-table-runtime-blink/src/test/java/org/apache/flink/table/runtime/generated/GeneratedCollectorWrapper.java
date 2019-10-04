@@ -45,7 +45,7 @@ public class GeneratedCollectorWrapper<C extends Collector<?>> extends Generated
 	}
 
 	@Override
-	public Class<C> compile(ClassLoader classLoader) {
+	public Class<?> compile(ClassLoader classLoader) {
 		return clazz;
 	}
 }

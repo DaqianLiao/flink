@@ -37,7 +37,8 @@ import java.util.Map;
  */
 @PublicEvolving
 public abstract class ConnectTableDescriptor
-	extends TableDescriptor<ConnectTableDescriptor> {
+	extends TableDescriptor<ConnectTableDescriptor>
+	implements SchematicDescriptor<ConnectTableDescriptor> {
 
 	private final TableEnvironment tableEnv;
 
@@ -51,6 +52,7 @@ public abstract class ConnectTableDescriptor
 	/**
 	 * Specifies the resulting table schema.
 	 */
+	@Override
 	public ConnectTableDescriptor withSchema(Schema schema) {
 		schemaDescriptor = Preconditions.checkNotNull(schema, "Schema must not be null.");
 		return this;

@@ -25,8 +25,6 @@ import org.apache.flink.table.catalog.CatalogTable;
 import org.apache.flink.table.catalog.CatalogTableImpl;
 import org.apache.flink.table.catalog.ObjectPath;
 import org.apache.flink.table.catalog.config.CatalogConfig;
-import org.apache.flink.table.catalog.hive.client.HiveShim;
-import org.apache.flink.table.catalog.hive.client.HiveShimLoader;
 import org.apache.flink.table.catalog.hive.descriptors.HiveCatalogValidator;
 import org.apache.flink.table.factories.FunctionDefinitionFactory;
 import org.apache.flink.table.factories.TableFactoryUtil;
@@ -73,7 +71,6 @@ public class HiveTableFactory
 
 	private final HiveConf hiveConf;
 	private final String hiveVersion;
-	private final HiveShim hiveShim;
 
 	public HiveTableFactory(HiveConf hiveConf) {
 		this.hiveConf = checkNotNull(hiveConf, "hiveConf cannot be null");
@@ -81,7 +78,6 @@ public class HiveTableFactory
 		// this has to come from hiveConf, otherwise we may lose what user specifies in the yaml file
 		this.hiveVersion = checkNotNull(hiveConf.get(HiveCatalogValidator.CATALOG_HIVE_VERSION),
 				"Hive version is not defined");
-		this.hiveShim = HiveShimLoader.loadHiveShim(hiveVersion);
 	}
 
 	@Override
@@ -170,19 +166,19 @@ public class HiveTableFactory
 
 			return new ScalarFunctionDefinition(
 				name,
-				new HiveSimpleUDF(new HiveFunctionWrapper<>(functionClassName), hiveShim)
+				new HiveSimpleUDF(new HiveFunctionWrapper<>(functionClassName))
 			);
 		} else if (GenericUDF.class.isAssignableFrom(clazz)) {
 			LOG.info("Transforming Hive function '{}' into a HiveGenericUDF", name);
 
 			return new ScalarFunctionDefinition(
 				name,
-				new HiveGenericUDF(new HiveFunctionWrapper<>(functionClassName), hiveShim)
+				new HiveGenericUDF(new HiveFunctionWrapper<>(functionClassName))
 			);
 		} else if (GenericUDTF.class.isAssignableFrom(clazz)) {
 			LOG.info("Transforming Hive function '{}' into a HiveGenericUDTF", name);
 
-			HiveGenericUDTF udtf = new HiveGenericUDTF(new HiveFunctionWrapper<>(functionClassName), hiveShim);
+			HiveGenericUDTF udtf = new HiveGenericUDTF(new HiveFunctionWrapper<>(functionClassName));
 
 			return new TableFunctionDefinition(
 				name,

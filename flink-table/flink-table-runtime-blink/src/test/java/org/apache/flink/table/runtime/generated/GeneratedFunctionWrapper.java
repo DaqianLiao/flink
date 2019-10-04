@@ -45,7 +45,7 @@ public class GeneratedFunctionWrapper<F extends Function> extends GeneratedFunct
 	}
 
 	@Override
-	public Class<F> compile(ClassLoader classLoader) {
+	public Class<?> compile(ClassLoader classLoader) {
 		return clazz;
 	}
 }

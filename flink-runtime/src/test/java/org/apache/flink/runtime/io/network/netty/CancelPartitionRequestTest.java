@@ -109,6 +109,7 @@ public class CancelPartitionRequestTest {
 			}
 
 			verify(view, times(1)).releaseAllResources();
+			verify(view, times(1)).notifySubpartitionConsumed();
 		}
 		finally {
 			shutdown(serverAndClient);
@@ -167,6 +168,7 @@ public class CancelPartitionRequestTest {
 			NettyTestUtil.awaitClose(ch);
 
 			verify(view, times(1)).releaseAllResources();
+			verify(view, times(1)).notifySubpartitionConsumed();
 		}
 		finally {
 			shutdown(serverAndClient);
@@ -201,6 +203,10 @@ public class CancelPartitionRequestTest {
 		@Override
 		public void releaseAllResources() throws IOException {
 			sync.countDown();
+		}
+
+		@Override
+		public void notifySubpartitionConsumed() throws IOException {
 		}
 
 		@Override

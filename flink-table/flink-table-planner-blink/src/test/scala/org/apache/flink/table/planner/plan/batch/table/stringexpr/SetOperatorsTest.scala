@@ -28,7 +28,7 @@ import java.sql.Timestamp
 
 class SetOperatorsTest extends TableTestBase {
 
-  @Ignore("Support in subQuery in ExpressionConverter")
+  @Ignore("Support in subQuery in RexNodeConverter")
   @Test
   def testInWithFilter(): Unit = {
     val util = batchTestUtil()

@@ -45,6 +45,5 @@ trait AggCodeGen {
     needAccumulate: Boolean = false,
     needRetract: Boolean = false,
     needMerge: Boolean = false,
-    needReset: Boolean = false,
-    needEmitValue: Boolean = false): Unit
+    needReset: Boolean = false): Unit
 }

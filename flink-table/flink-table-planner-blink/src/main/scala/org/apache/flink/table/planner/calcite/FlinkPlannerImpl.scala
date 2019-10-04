@@ -85,30 +85,6 @@ class FlinkPlannerImpl(
     hints.toArray
   }
 
-  /**
-    * Get the [[FlinkCalciteSqlValidator]] instance from this planner, create a new instance
-    * if current validator has not been initialized, or returns the validator
-    * instance directly.
-    *
-    * <p>The validator instance creation is not thread safe.
-    *
-    * @return a new validator instance or current existed one
-    */
-  def getOrCreateSqlValidator(): FlinkCalciteSqlValidator = {
-    if (validator == null) {
-      val catalogReader = catalogReaderSupplier.apply(false)
-      validator = new FlinkCalciteSqlValidator(
-        operatorTable,
-        catalogReader,
-        typeFactory)
-      validator.setIdentifierExpansion(true)
-      validator.setDefaultNullCollation(FlinkPlannerImpl.defaultNullCollation)
-      // Disable implicit type coercion for now.
-      validator.setEnableTypeCoercion(false)
-    }
-    validator
-  }
-
   def parse(sql: String): SqlNode = {
     try {
       ready()
@@ -136,8 +112,14 @@ class FlinkPlannerImpl(
       || sqlNode.getKind == SqlKind.INSERT) {
       return sqlNode
     }
+    validator = new FlinkCalciteSqlValidator(
+      operatorTable,
+      catalogReader,
+      typeFactory)
+    validator.setIdentifierExpansion(true)
+    validator.setDefaultNullCollation(FlinkPlannerImpl.defaultNullCollation)
     try {
-      getOrCreateSqlValidator().validate(sqlNode)
+      validator.validate(sqlNode)
     } catch {
       case e: RuntimeException =>
         throw new ValidationException(s"SQL validation failed. ${e.getMessage}", e)
@@ -149,7 +131,7 @@ class FlinkPlannerImpl(
       assert(validatedSqlNode != null)
       val sqlToRelConverter: SqlToRelConverter = new SqlToRelConverter(
         new ViewExpanderImpl,
-        getOrCreateSqlValidator(),
+        validator,
         catalogReaderSupplier.apply(false),
         cluster,
         convertletTable,

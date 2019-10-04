@@ -26,8 +26,7 @@ import org.apache.flink.table.planner.calcite.FlinkRelFactories.{ExpandFactory, 
 import org.apache.flink.table.planner.expressions.{PlannerWindowProperty, WindowProperty}
 import org.apache.flink.table.planner.plan.QueryOperationConverter
 import org.apache.flink.table.planner.plan.logical.LogicalWindow
-import org.apache.flink.table.planner.plan.nodes.calcite.{LogicalTableAggregate, LogicalWindowAggregate, LogicalWindowTableAggregate}
-import org.apache.flink.table.planner.plan.utils.AggregateUtil
+import org.apache.flink.table.planner.plan.nodes.calcite.LogicalWindowAggregate
 import org.apache.flink.table.runtime.operators.rank.{RankRange, RankType}
 import org.apache.flink.table.sinks.TableSink
 
@@ -77,9 +76,9 @@ class FlinkRelBuilder(
     Util.first(context.unwrap(classOf[SinkFactory]), FlinkRelFactories.DEFAULT_SINK_FACTORY)
   }
 
-  override def getRelOptSchema: RelOptSchema = relOptSchema
+  def getRelOptSchema: RelOptSchema = relOptSchema
 
-  override def getCluster: RelOptCluster = relOptCluster
+  def getCluster: RelOptCluster = relOptCluster
 
   override def getTypeFactory: FlinkTypeFactory =
     super.getTypeFactory.asInstanceOf[FlinkTypeFactory]
@@ -112,25 +111,7 @@ class FlinkRelBuilder(
     push(rank)
   }
 
-  /**
-    * Build non-window aggregate for either aggregate or table aggregate.
-    */
-  override def aggregate(groupKey: GroupKey, aggCalls: Iterable[AggCall]): RelBuilder = {
-    // build a relNode, the build() may also return a project
-    val relNode = super.aggregate(groupKey, aggCalls).build()
-
-    relNode match {
-      case logicalAggregate: LogicalAggregate
-        if AggregateUtil.isTableAggregate(logicalAggregate.getAggCallList) =>
-        push(LogicalTableAggregate.create(logicalAggregate))
-      case _ => push(relNode)
-    }
-  }
-
-  /**
-    * Build window aggregate for either aggregate or table aggregate.
-    */
-  def windowAggregate(
+  def aggregate(
       window: LogicalWindow,
       groupKey: GroupKey,
       namedProperties: List[PlannerNamedWindowProperty],
@@ -139,12 +120,8 @@ class FlinkRelBuilder(
     val aggregate = super.aggregate(groupKey, aggCalls).build().asInstanceOf[LogicalAggregate]
 
     // build logical window aggregate from it
-    aggregate match {
-      case logicalAggregate: LogicalAggregate
-        if AggregateUtil.isTableAggregate(logicalAggregate.getAggCallList) =>
-        push(LogicalWindowTableAggregate.create(window, namedProperties, aggregate))
-      case _ => push(LogicalWindowAggregate.create(window, namedProperties, aggregate))
-    }
+    push(LogicalWindowAggregate.create(window, namedProperties, aggregate))
+    this
   }
 
   def queryOperation(queryOperation: QueryOperation): RelBuilder = {

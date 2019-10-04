@@ -43,6 +43,7 @@ import static org.apache.hadoop.hive.conf.HiveConf.ConfVars.HIVE_CBO_ENABLED;
 import static org.apache.hadoop.hive.conf.HiveConf.ConfVars.HIVE_INFER_BUCKET_SORT;
 import static org.apache.hadoop.hive.conf.HiveConf.ConfVars.HIVE_SERVER2_LOGGING_OPERATION_ENABLED;
 import static org.apache.hadoop.hive.conf.HiveConf.ConfVars.HIVE_SUPPORT_CONCURRENCY;
+import static org.apache.hadoop.hive.conf.HiveConf.ConfVars.HIVE_WAREHOUSE_SUBDIR_INHERIT_PERMS;
 import static org.apache.hadoop.hive.conf.HiveConf.ConfVars.LOCALSCRATCHDIR;
 import static org.apache.hadoop.hive.conf.HiveConf.ConfVars.METASTOREWAREHOUSE;
 import static org.apache.hadoop.hive.conf.HiveConf.ConfVars.METASTORE_VALIDATE_COLUMNS;
@@ -184,8 +185,7 @@ public class FlinkStandaloneHiveServerContext implements HiveServerContext {
 		createAndSetFolderProperty(LOCALSCRATCHDIR, "localscratchdir", conf, basedir);
 		createAndSetFolderProperty(HIVEHISTORYFILELOC, "tmp", conf, basedir);
 
-		// HIVE_WAREHOUSE_SUBDIR_INHERIT_PERMS is removed from Hive 3.1.0
-		conf.setBoolean("hive.warehouse.subdir.inherit.perms", true);
+		conf.setBoolVar(HIVE_WAREHOUSE_SUBDIR_INHERIT_PERMS, true);
 
 		createAndSetFolderProperty("hadoop.tmp.dir", "hadooptmp", conf, basedir);
 		createAndSetFolderProperty("test.log.dir", "logs", conf, basedir);

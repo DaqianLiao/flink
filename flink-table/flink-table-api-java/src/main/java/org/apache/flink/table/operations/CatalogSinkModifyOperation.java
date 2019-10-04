@@ -36,20 +36,17 @@ public class CatalogSinkModifyOperation implements ModifyOperation {
 	private final Map<String, String> staticPartitions;
 	private final List<String> tablePath;
 	private final QueryOperation child;
-	private final boolean overwrite;
 
 	public CatalogSinkModifyOperation(List<String> tablePath, QueryOperation child) {
-		this(tablePath, child, new HashMap<>(), false);
+		this(tablePath, child, new HashMap<>());
 	}
 
 	public CatalogSinkModifyOperation(List<String> tablePath,
 			QueryOperation child,
-			Map<String, String> staticPartitions,
-			boolean overwrite) {
+			Map<String, String> staticPartitions) {
 		this.tablePath = tablePath;
 		this.child = child;
 		this.staticPartitions = staticPartitions;
-		this.overwrite = overwrite;
 	}
 
 	public List<String> getTablePath() {
@@ -58,10 +55,6 @@ public class CatalogSinkModifyOperation implements ModifyOperation {
 
 	public Map<String, String> getStaticPartitions() {
 		return staticPartitions;
-	}
-
-	public boolean isOverwrite() {
-		return overwrite;
 	}
 
 	@Override
@@ -79,7 +72,6 @@ public class CatalogSinkModifyOperation implements ModifyOperation {
 		Map<String, Object> params = new LinkedHashMap<>();
 		params.put("tablePath", tablePath);
 		params.put("staticPartitions", staticPartitions);
-		params.put("overwrite", overwrite);
 
 		return OperationUtils.formatWithChildren(
 			"CatalogSink",

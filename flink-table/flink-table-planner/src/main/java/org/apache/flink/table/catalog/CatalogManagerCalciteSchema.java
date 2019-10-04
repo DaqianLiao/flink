@@ -30,7 +30,11 @@ import org.apache.calcite.schema.Table;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.LinkedHashSet;
+import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * Bridge between the {@link CatalogManager} and the {@link Schema}. This way we can query Flink's specific catalogs
@@ -38,6 +42,8 @@ import java.util.Set;
  *
  * <p>The mapping for {@link Catalog}s is modeled as a strict two-level reference structure for Flink in Calcite,
  * the full path of objects is of format [catalog_name].[db_name].[meta-object_name].
+ *
+ * <p>It also supports {@link ExternalCatalog}s. An external catalog maps 1:1 to the Calcite's schema.
  */
 @Internal
 public class CatalogManagerCalciteSchema implements Schema {
@@ -82,14 +88,22 @@ public class CatalogManagerCalciteSchema implements Schema {
 
 	@Override
 	public Schema getSubSchema(String name) {
-		return catalogManager.getCatalog(name)
-			.map(catalog -> new CatalogCalciteSchema(isStreamingMode, name, catalog))
-			.orElse(null);
+		Optional<Schema> externalSchema = catalogManager.getExternalCatalog(name)
+			.map(externalCatalog -> new ExternalCatalogSchema(isStreamingMode, name, externalCatalog));
+
+		return externalSchema.orElseGet(() ->
+			catalogManager.getCatalog(name)
+				.map(catalog -> new CatalogCalciteSchema(isStreamingMode, name, catalog))
+				.orElse(null)
+		);
 	}
 
 	@Override
 	public Set<String> getSubSchemaNames() {
-		return catalogManager.getCatalogs();
+		return Stream.concat(
+			catalogManager.getCatalogs().stream(),
+			catalogManager.getExternalCatalogs().stream())
+			.collect(Collectors.toCollection(LinkedHashSet::new));
 	}
 
 	@Override

@@ -45,7 +45,7 @@ public class GeneratedResultFutureWrapper<T extends ResultFuture<?>> extends Gen
 	}
 
 	@Override
-	public Class<T> compile(ClassLoader classLoader) {
+	public Class<?> compile(ClassLoader classLoader) {
 		return clazz;
 	}
 }

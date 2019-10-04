@@ -25,11 +25,11 @@ import org.apache.flink.sql.parser.dml.RichSqlInsert
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment
 import org.apache.flink.table.api.config.ExecutionConfigOptions
 import org.apache.flink.table.api.{TableConfig, TableEnvironment, TableException}
-import org.apache.flink.table.catalog._
+import org.apache.flink.table.catalog.{CatalogManager, CatalogTable, ConnectorCatalogTable, FunctionCatalog, ObjectPath}
 import org.apache.flink.table.delegation.{Executor, Planner}
 import org.apache.flink.table.factories.{TableFactoryService, TableFactoryUtil, TableSinkFactory}
 import org.apache.flink.table.operations.OutputConversionModifyOperation.UpdateMode
-import org.apache.flink.table.operations._
+import org.apache.flink.table.operations.{CatalogSinkModifyOperation, ModifyOperation, Operation, OutputConversionModifyOperation, UnregisteredSinkModifyOperation}
 import org.apache.flink.table.planner.calcite.{FlinkPlannerImpl, FlinkRelBuilder, FlinkTypeFactory}
 import org.apache.flink.table.planner.catalog.CatalogManagerCalciteSchema
 import org.apache.flink.table.planner.expressions.PlannerTypeInferenceUtilImpl
@@ -42,7 +42,7 @@ import org.apache.flink.table.planner.plan.reuse.SubplanReuser
 import org.apache.flink.table.planner.plan.utils.SameRelObjectShuttle
 import org.apache.flink.table.planner.sinks.{DataStreamTableSink, TableSinkUtils}
 import org.apache.flink.table.planner.utils.JavaScalaConversionUtil
-import org.apache.flink.table.sinks.{OverwritableTableSink, PartitionableTableSink, TableSink}
+import org.apache.flink.table.sinks.{PartitionableTableSink, TableSink}
 import org.apache.flink.table.types.utils.LegacyTypeInfoDataTypeConverter
 
 import org.apache.calcite.jdbc.CalciteSchemaBuilder.asRootSchema
@@ -51,6 +51,7 @@ import org.apache.calcite.rel.RelNode
 import org.apache.calcite.sql.SqlKind
 import org.apache.calcite.tools.FrameworkConfig
 
+import _root_.java.util.{List => JList}
 import java.util
 
 import _root_.scala.collection.JavaConversions._
@@ -174,23 +175,14 @@ abstract class PlannerBase(
 
       case catalogSink: CatalogSinkModifyOperation =>
         val input = getRelBuilder.queryOperation(modifyOperation.getChild).build()
-        val identifier = catalogManager.qualifyIdentifier(catalogSink.getTablePath: _*)
-        getTableSink(identifier).map(sink => {
-          TableSinkUtils.validateSink(catalogSink, identifier, sink)
+        getTableSink(catalogSink.getTablePath).map(sink => {
+          TableSinkUtils.validateSink(catalogSink, catalogSink.getTablePath, sink)
           sink match {
             case partitionableSink: PartitionableTableSink
               if partitionableSink.getPartitionFieldNames != null
                 && partitionableSink.getPartitionFieldNames.nonEmpty =>
               partitionableSink.setStaticPartition(catalogSink.getStaticPartitions)
             case _ =>
-          }
-          sink match {
-            case overwritableTableSink: OverwritableTableSink =>
-              overwritableTableSink.setOverwrite(catalogSink.isOverwrite)
-            case _ =>
-              assert(!catalogSink.isOverwrite, "INSERT OVERWRITE requires " +
-                s"${classOf[OverwritableTableSink].getSimpleName} but actually got " +
-                sink.getClass.getName)
           }
           LogicalSink.create(input, sink, catalogSink.getTablePath.mkString("."))
         }) match {
@@ -254,22 +246,28 @@ abstract class PlannerBase(
     */
   protected def translateToPlan(execNodes: util.List[ExecNode[_, _]]): util.List[Transformation[_]]
 
-  private def getTableSink(objectIdentifier: ObjectIdentifier): Option[TableSink[_]] = {
-    JavaScalaConversionUtil.toScala(catalogManager.getTable(objectIdentifier)) match {
-      case Some(s) if s.isInstanceOf[ConnectorCatalogTable[_, _]] =>
+  private def getTableSink(tablePath: JList[String]): Option[TableSink[_]] = {
+    JavaScalaConversionUtil.toScala(catalogManager.resolveTable(tablePath: _*)) match {
+      case Some(s) if s.getExternalCatalogTable.isPresent =>
+
+        Option(TableFactoryUtil.findAndCreateTableSink(s.getExternalCatalogTable.get()))
+
+      case Some(s) if JavaScalaConversionUtil.toScala(s.getCatalogTable)
+        .exists(_.isInstanceOf[ConnectorCatalogTable[_, _]]) =>
+
         JavaScalaConversionUtil
-          .toScala(s.asInstanceOf[ConnectorCatalogTable[_, _]].getTableSink)
+          .toScala(s.getCatalogTable.get().asInstanceOf[ConnectorCatalogTable[_, _]].getTableSink)
 
-      case Some(s) if s.isInstanceOf[CatalogTable] =>
+      case Some(s) if JavaScalaConversionUtil.toScala(s.getCatalogTable)
+        .exists(_.isInstanceOf[CatalogTable]) =>
 
-        val catalog = catalogManager.getCatalog(objectIdentifier.getCatalogName)
-        val catalogTable = s.asInstanceOf[CatalogTable]
+        val catalog = catalogManager.getCatalog(s.getTablePath.get(0))
+        val catalogTable = s.getCatalogTable.get().asInstanceOf[CatalogTable]
         if (catalog.isPresent && catalog.get().getTableFactory.isPresent) {
-          val objectPath = objectIdentifier.toObjectPath
+          val dbName = s.getTablePath.get(1)
+          val tableName = s.getTablePath.get(2)
           val sink = TableFactoryUtil.createTableSinkForCatalogTable(
-            catalog.get(),
-            catalogTable,
-            objectPath)
+            catalog.get(), catalogTable, new ObjectPath(dbName, tableName))
           if (sink.isPresent) {
             return Option(sink.get())
           }

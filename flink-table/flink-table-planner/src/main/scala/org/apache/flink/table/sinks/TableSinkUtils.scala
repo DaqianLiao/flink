@@ -18,13 +18,12 @@
 
 package org.apache.flink.table.sinks
 
-import org.apache.flink.table.api.ValidationException
-import org.apache.flink.table.catalog.ObjectIdentifier
+import org.apache.flink.table.api.{TableException, ValidationException}
 import org.apache.flink.table.operations.QueryOperation
 
-import java.util.{Map => JMap}
+import java.util.{List => JList, Map => JMap}
 
-import scala.collection.JavaConversions._
+import collection.JavaConversions._
 
 object TableSinkUtils {
 
@@ -35,14 +34,14 @@ object TableSinkUtils {
     *
     * @param staticPartitions Static partitions of the sink if there exists any.
     * @param query            The query that is supposed to be written.
-    * @param objectIdentifier The path of the sink. It is needed just for logging. It does not
+    * @param sinkPath         Tha path of the sink. It is needed just for logging. It does not
     *                         participate in the validation.
     * @param sink             The sink that we want to write to.
     */
   def validateSink(
       staticPartitions: JMap[String, String],
       query: QueryOperation,
-      objectIdentifier: ObjectIdentifier,
+      sinkPath: JList[String],
       sink: TableSink[_])
     : Unit = {
     // validate schema of source table and table sink
@@ -65,7 +64,7 @@ object TableSinkUtils {
 
       throw new ValidationException(
         s"Field types of query result and registered TableSink " +
-          s"$objectIdentifier do not match.\n" +
+          s"$sinkPath do not match.\n" +
           s"Query result schema: $srcSchema\n" +
           s"TableSink schema:    $sinkSchema")
     }

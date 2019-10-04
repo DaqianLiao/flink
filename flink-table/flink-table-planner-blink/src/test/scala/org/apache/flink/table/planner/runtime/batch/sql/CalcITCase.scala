@@ -302,8 +302,8 @@ class CalcITCase extends BatchTestBase {
     registerCollection("MyTable", data, new RowTypeInfo(STRING_TYPE_INFO), "text")
 
     checkResult(
-      "SELECT hashCode(text), hashCode('22') FROM MyTable",
-      Seq(row(97,1600), row(98,1600), row(99,1600)
+      "SELECT hashCode(text) FROM MyTable",
+      Seq(row(97), row(98), row(99)
       ))
   }
 

@@ -23,12 +23,12 @@ import org.apache.flink.table.planner.plan.optimize.program.{FlinkBatchProgram, 
 import org.apache.flink.table.planner.utils.{TableConfigUtils, TableTestBase}
 
 import org.apache.calcite.plan.hep.HepMatchOrder
-import org.apache.calcite.rel.rules.{JoinToMultiJoinRule, ProjectMultiJoinMergeRule}
+import org.apache.calcite.rel.rules.ProjectMultiJoinMergeRule
 import org.apache.calcite.tools.RuleSets
 import org.junit.{Before, Test}
 
 /**
-  * Tests for [[org.apache.calcite.rel.rules.JoinToMultiJoinRule]].
+  * Test for [[FlinkJoinToMultiJoinRule]].
   */
 class FlinkJoinToMultiJoinRuleTest extends TableTestBase {
   private val util = batchTestUtil()
@@ -43,7 +43,7 @@ class FlinkJoinToMultiJoinRuleTest extends TableTestBase {
         .setHepRulesExecutionType(HEP_RULES_EXECUTION_TYPE.RULE_COLLECTION)
         .setHepMatchOrder(HepMatchOrder.BOTTOM_UP)
         .add(RuleSets.ofList(
-          JoinToMultiJoinRule.INSTANCE,
+          FlinkJoinToMultiJoinRule.INSTANCE,
           ProjectMultiJoinMergeRule.INSTANCE))
         .build()
     )

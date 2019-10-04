@@ -19,11 +19,12 @@
 package org.apache.flink.table.planner.sinks
 
 import org.apache.flink.table.api.ValidationException
-import org.apache.flink.table.catalog.ObjectIdentifier
 import org.apache.flink.table.operations.CatalogSinkModifyOperation
 import org.apache.flink.table.runtime.types.LogicalTypeDataTypeConverter.fromDataTypeToLogicalType
 import org.apache.flink.table.runtime.types.PlannerTypeUtils
 import org.apache.flink.table.sinks.{PartitionableTableSink, TableSink}
+
+import java.util.{List => JList}
 
 import scala.collection.JavaConversions._
 
@@ -35,13 +36,13 @@ object TableSinkUtils {
     * sink is a [[PartitionableTableSink]], also check that the partitions are valid.
     *
     * @param sinkOperation The sink operation with the query that is supposed to be written.
-    * @param sinkIdentifier Tha path of the sink. It is needed just for logging. It does not
+    * @param sinkPath      Tha path of the sink. It is needed just for logging. It does not
     *                      participate in the validation.
     * @param sink     The sink that we want to write to.
     */
   def validateSink(
       sinkOperation: CatalogSinkModifyOperation,
-      sinkIdentifier: ObjectIdentifier,
+      sinkPath: JList[String],
       sink: TableSink[_]): Unit = {
     val query = sinkOperation.getChild
     // validate schema of source table and table sink
@@ -67,7 +68,7 @@ object TableSinkUtils {
 
       throw new ValidationException(
         s"Field types of query result and registered TableSink " +
-          s"$sinkIdentifier do not match.\n" +
+          s"$sinkPath do not match.\n" +
           s"Query result schema: $srcSchema\n" +
           s"TableSink schema:    $sinkSchema")
     }

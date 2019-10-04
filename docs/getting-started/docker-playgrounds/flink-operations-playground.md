@@ -31,19 +31,6 @@ In this playground, you will learn how to manage and run Flink Jobs. You will se
 monitor an application, experience how Flink recovers from Job failure, and perform everyday 
 operational tasks like upgrades and rescaling.
 
-{% if site.version contains "SNAPSHOT" %}
-<p style="border-radius: 5px; padding: 5px" class="bg-danger">
-  <b>
-  NOTE: The Apache Flink Docker images used for this playground are only available for
-  released versions of Apache Flink.
-  </b><br>
-  Since you are currently looking at the latest SNAPSHOT
-  version of the documentation, all version references below will not work.
-  Please switch the documentation to the latest released version via the release picker which you
-  find on the left side below the menu.
-</p>
-{% endif %}
-
 * This will be replaced by the TOC
 {:toc}
 
@@ -87,6 +74,15 @@ output of the Flink job should show 1000 views per page and window.
 {% top %}
 
 ## Starting the Playground
+
+{% if site.version contains "SNAPSHOT" %}
+<p style="border-radius: 5px; padding: 5px" class="bg-danger">
+  <b>Note</b>: The Apache Flink Docker images used for this playground are only available for
+  released versions of Apache Flink. Since you are currently looking at the latest SNAPSHOT
+  version of the documentation the branch referenced below will not exist. You can either change it 
+  manually or switch to the released version of the documentation via the release picker.
+</p>
+{% endif %}
 
 The playground environment is set up in just a few steps. We will walk you through the necessary 
 commands and show how to validate that everything is running correctly.
