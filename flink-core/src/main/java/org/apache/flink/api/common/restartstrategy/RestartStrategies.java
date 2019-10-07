@@ -26,6 +26,8 @@ import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
 /**
+ * 定义重启策略的配置
+ *
  * This class defines methods to generate RestartStrategyConfigurations. These configurations are
  * used to create RestartStrategies at runtime.
  *
@@ -83,6 +85,8 @@ public class RestartStrategies {
 
 	/**
 	 * Abstract configuration for restart strategies.
+	 *
+	 * 重启策略的抽象配置类
 	 */
 	public abstract static class RestartStrategyConfiguration implements Serializable {
 		private static final long serialVersionUID = 6285853591578313960L;
@@ -99,6 +103,8 @@ public class RestartStrategies {
 
 	/**
 	 * Configuration representing no restart strategy.
+	 *
+	 * 无重启策略配置类
 	 */
 	public static final class NoRestartStrategyConfiguration extends RestartStrategyConfiguration {
 		private static final long serialVersionUID = -5894362702943349962L;
@@ -124,6 +130,8 @@ public class RestartStrategies {
 
 	/**
 	 * Configuration representing a fixed delay restart strategy.
+	 *
+	 * 固定次数延迟重启策略配置类
 	 */
 	public static final class FixedDelayRestartStrategyConfiguration extends RestartStrategyConfiguration {
 		private static final long serialVersionUID = 4149870149673363190L;
@@ -170,6 +178,8 @@ public class RestartStrategies {
 	}
 
 	/**
+	 * 故障率重启策略配置类
+	 *
 	 * Configuration representing a failure rate restart strategy.
 	 */
 	public static final class FailureRateRestartStrategyConfiguration extends RestartStrategyConfiguration {
@@ -224,6 +234,8 @@ public class RestartStrategies {
 	}
 
 	/**
+	 * Job 可以使用该配置来使用集群重启策略
+	 *
 	 * Restart strategy configuration that could be used by jobs to use cluster level restart
 	 * strategy. Useful especially when one has a custom implementation of restart strategy set via
 	 * flink-conf.yaml.
