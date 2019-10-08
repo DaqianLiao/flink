@@ -28,6 +28,8 @@ import static org.apache.flink.util.Preconditions.checkNotNull;
 public final class RestartStrategyResolving {
 
 	/**
+	 * RestartStrategyFactory 根据重启策略的配置来创建 RestartStrategy
+	 *
 	 * Resolves which {@link RestartStrategy} to use. It should be used only on the server side.
 	 * The resolving strategy is as follows:
 	 * <ol>

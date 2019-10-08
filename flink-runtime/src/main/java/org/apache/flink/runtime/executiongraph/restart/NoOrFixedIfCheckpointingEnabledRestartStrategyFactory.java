@@ -37,6 +37,7 @@ public class NoOrFixedIfCheckpointingEnabledRestartStrategyFactory extends Resta
 	}
 
 	RestartStrategy createRestartStrategy(boolean isCheckpointingEnabled) {
+		//判断是否开启 checkpoint
 		if (isCheckpointingEnabled) {
 			return new FixedDelayRestartStrategy(DEFAULT_RESTART_ATTEMPTS, DEFAULT_RESTART_DELAY);
 		} else {
