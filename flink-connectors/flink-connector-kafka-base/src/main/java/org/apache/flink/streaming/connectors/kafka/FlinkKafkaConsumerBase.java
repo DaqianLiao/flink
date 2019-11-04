@@ -106,6 +106,7 @@ public abstract class FlinkKafkaConsumerBase<T> extends RichParallelSourceFuncti
 	public static final String KEY_DISABLE_METRICS = "flink.disable-metrics";
 
 	/** Configuration key to define the consumer's partition discovery interval, in milliseconds. */
+	//定义分区和主题自动发现的时间间隔
 	public static final String KEY_PARTITION_DISCOVERY_INTERVAL_MILLIS = "flink.partition-discovery.interval-millis";
 
 	/** State name of the consumer's partition offset states. */
@@ -244,6 +245,7 @@ public abstract class FlinkKafkaConsumerBase<T> extends RichParallelSourceFuncti
 			KafkaDeserializationSchema<T> deserializer,
 			long discoveryIntervalMillis,
 			boolean useMetrics) {
+		// topic 的类型，是多个 topic 还是正则表达式的 topic
 		this.topicsDescriptor = new KafkaTopicsDescriptor(topics, topicPattern);
 		this.deserializer = checkNotNull(deserializer, "valueDeserializer");
 

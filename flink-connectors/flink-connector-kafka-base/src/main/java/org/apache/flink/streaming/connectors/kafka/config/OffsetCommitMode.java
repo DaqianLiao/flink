@@ -29,11 +29,14 @@ import org.apache.flink.annotation.Internal;
 public enum OffsetCommitMode {
 
 	/** Completely disable offset committing. */
+	//禁止 offset 提交
 	DISABLED,
 
 	/** Commit offsets back to Kafka only when checkpoints are completed. */
+	//当 checkpoint 完成后才会提交 offset 到 kafka
 	ON_CHECKPOINTS,
 
 	/** Commit offsets periodically back to Kafka, using the auto commit functionality of internal Kafka clients. */
+	//定时将 offset 提交到 Kafka
 	KAFKA_PERIODIC;
 }
