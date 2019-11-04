@@ -34,6 +34,7 @@ import org.apache.flink.configuration.ResourceManagerOptions;
 import org.apache.flink.configuration.RestOptions;
 import org.apache.flink.configuration.SecurityOptions;
 import org.apache.flink.configuration.TaskManagerOptions;
+import org.apache.flink.core.plugin.PluginConfig;
 import org.apache.flink.core.plugin.PluginUtils;
 import org.apache.flink.runtime.clusterframework.BootstrapTools;
 import org.apache.flink.runtime.clusterframework.ContaineredTaskManagerParameters;
@@ -97,11 +98,11 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
 import static org.apache.flink.configuration.ConfigConstants.ENV_FLINK_LIB_DIR;
-import static org.apache.flink.configuration.ConfigConstants.ENV_FLINK_PLUGINS_DIR;
 import static org.apache.flink.runtime.entrypoint.component.FileJobGraphRetriever.JOB_GRAPH_FILE_PATH;
 import static org.apache.flink.yarn.cli.FlinkYarnSessionCli.CONFIG_FILE_LOG4J_NAME;
 import static org.apache.flink.yarn.cli.FlinkYarnSessionCli.CONFIG_FILE_LOGBACK_NAME;
@@ -1003,7 +1004,7 @@ public abstract class AbstractYarnClusterDescriptor implements ClusterDescriptor
 		setApplicationTags(appContext);
 
 		// add a hook to clean up in case deployment fails
-		Thread deploymentFailureHook = new DeploymentFailureHook(yarnClient, yarnApplication, yarnFilesDir);
+		Thread deploymentFailureHook = new DeploymentFailureHook(yarnApplication, yarnFilesDir);
 		Runtime.getRuntime().addShutdownHook(deploymentFailureHook);
 		LOG.info("Submitting application master " + appId);
 		yarnClient.submitApplication(appContext);
@@ -1213,7 +1214,6 @@ public abstract class AbstractYarnClusterDescriptor implements ClusterDescriptor
 			// call (we don't know if the application has been deployed when the error occured).
 			LOG.debug("Error while killing YARN application", e);
 		}
-		yarnClient.stop();
 	}
 
 	private static class ClusterResourceDescription {
@@ -1498,16 +1498,22 @@ public abstract class AbstractYarnClusterDescriptor implements ClusterDescriptor
 		private final YarnClientApplication yarnApplication;
 		private final Path yarnFilesDir;
 
-		DeploymentFailureHook(YarnClient yarnClient, YarnClientApplication yarnApplication, Path yarnFilesDir) {
-			this.yarnClient = Preconditions.checkNotNull(yarnClient);
+		DeploymentFailureHook(YarnClientApplication yarnApplication, Path yarnFilesDir) {
 			this.yarnApplication = Preconditions.checkNotNull(yarnApplication);
 			this.yarnFilesDir = Preconditions.checkNotNull(yarnFilesDir);
+
+			// A new yarn client need to be created in shutdown hook in order to avoid
+			// the yarn client has been closed by AbstractYarnClusterDescriptor.
+			this.yarnClient = YarnClient.createYarnClient();
+			this.yarnClient.init(yarnConfiguration);
 		}
 
 		@Override
 		public void run() {
 			LOG.info("Cancelling deployment from Deployment Failure Hook");
+			yarnClient.start();
 			failSessionDuringDeployment(yarnClient, yarnApplication);
+			yarnClient.stop();
 			LOG.info("Deleting files in {}.", yarnFilesDir);
 			try {
 				FileSystem fs = FileSystem.get(yarnConfiguration);
@@ -1548,16 +1554,8 @@ public abstract class AbstractYarnClusterDescriptor implements ClusterDescriptor
 	}
 
 	private void addPluginsFoldersToShipFiles(Collection<File> effectiveShipFiles) {
-		String pluginsDir = System.getenv().get(ENV_FLINK_PLUGINS_DIR);
-		if (pluginsDir != null) {
-			File directoryFile = new File(pluginsDir);
-			if (directoryFile.isDirectory()) {
-				effectiveShipFiles.add(directoryFile);
-			} else {
-				LOG.warn("The environment variable '" + ENV_FLINK_PLUGINS_DIR +
-					"' is set to '" + pluginsDir + "' but the directory doesn't exist.");
-			}
-		}
+		final Optional<File> pluginsDir = PluginConfig.getPluginsDir();
+		pluginsDir.ifPresent(effectiveShipFiles::add);
 	}
 
 	protected ContainerLaunchContext setupApplicationMasterContainer(

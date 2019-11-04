@@ -152,7 +152,6 @@ class HistoryServerArchiveFetcher {
 					if (jobArchives == null) {
 						continue;
 					}
-					boolean updateOverview = false;
 					int numFetchedArchives = 0;
 					for (FileStatus jobArchive : jobArchives) {
 						Path jobArchivePath = jobArchive.getPath();
@@ -164,7 +163,7 @@ class HistoryServerArchiveFetcher {
 								refreshDir, jobID, iae);
 							continue;
 						}
-						if (cachedArchives.add(jobID)) {
+						if (!cachedArchives.contains(jobID)) {
 							try {
 								for (ArchivedJson archive : FsJobArchivist.getArchivedJsons(jobArchive.getPath())) {
 									String path = archive.getPath();
@@ -177,6 +176,7 @@ class HistoryServerArchiveFetcher {
 										json = convertLegacyJobOverview(json);
 										target = new File(webOverviewDir, jobID + JSON_FILE_ENDING);
 									} else {
+										// this implicitly writes into webJobDir
 										target = new File(webDir, path + JSON_FILE_ENDING);
 									}
 
@@ -200,12 +200,10 @@ class HistoryServerArchiveFetcher {
 										fw.flush();
 									}
 								}
-								updateOverview = true;
+								cachedArchives.add(jobID);
 								numFetchedArchives++;
 							} catch (IOException e) {
 								LOG.error("Failure while fetching/processing job archive for job {}.", jobID, e);
-								// Make sure we attempt to fetch the archive again
-								cachedArchives.remove(jobID);
 								// Make sure we do not include this job in the overview
 								try {
 									Files.delete(new File(webOverviewDir, jobID + JSON_FILE_ENDING).toPath());
@@ -223,7 +221,7 @@ class HistoryServerArchiveFetcher {
 							}
 						}
 					}
-					if (updateOverview) {
+					if (numFetchedArchives > 0) {
 						updateJobOverview(webOverviewDir, webDir);
 						for (int x = 0; x < numFetchedArchives; x++) {
 							numArchivedJobs.countDown();
