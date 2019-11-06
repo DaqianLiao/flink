@@ -52,6 +52,8 @@ public final class KeyGroupRangeAssignment {
 	/**
 	 * Assigns the given key to a key-group index.
 	 *
+	 * 先取数据的 hashcode，然后将数据的 hash 值去 % 最大的并行度，来确定数据会发送到下游的哪个并行度上去
+	 *
 	 * @param key the key to assign
 	 * @param maxParallelism the maximum supported parallelism, aka the number of key-groups.
 	 * @return the key-group to which the given key is assigned
