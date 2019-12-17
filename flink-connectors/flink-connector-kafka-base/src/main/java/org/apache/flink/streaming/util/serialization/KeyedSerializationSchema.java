@@ -29,6 +29,8 @@ import java.io.Serializable;
  *
  * @param <T> The type to be serialized.
  *
+ * 过期的接口，序列化数据
+ *
  * @deprecated Use {@link KafkaSerializationSchema}.
  */
 @Deprecated

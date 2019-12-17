@@ -32,6 +32,12 @@ import static org.apache.flink.api.java.typeutils.TypeExtractor.getForClass;
 /**
  * DeserializationSchema that deserializes a JSON String into an ObjectNode.
  *
+ * JSONKeyValueDeserializationSchema 将 JSON 数据反序列化成 ObjectNode 对象，注意，不是 JSON 的话不能使用该类，否则会报错
+ *
+ * 想获取到反序列化的数据可以通过 objectNode.get("value")
+ *
+ * 想获取到数据的元数据信息，可以通过 objectNode.get("metadata") ，元数据包含了 offset、topic、partition 信息
+ *
  * <p>Key fields can be accessed by calling objectNode.get("key").get(&lt;name>).as(&lt;type>)
  *
  * <p>Value fields can be accessed by calling objectNode.get("value").get(&lt;name>).as(&lt;type>)

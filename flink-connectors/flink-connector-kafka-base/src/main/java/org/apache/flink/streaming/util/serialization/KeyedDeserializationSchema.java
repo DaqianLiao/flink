@@ -31,6 +31,8 @@ import java.io.IOException;
  *
  * @param <T> The type created by the keyed deserialization schema.
  *
+ * 过期的接口，反序列化数据，继承自接口 KafkaDeserializationSchema，但是建议直接使用 KafkaDeserializationSchema 接口，支持读取到消息的 topic、partition、offset
+ *
  * @deprecated Use {@link KafkaDeserializationSchema}.
  */
 @Deprecated
