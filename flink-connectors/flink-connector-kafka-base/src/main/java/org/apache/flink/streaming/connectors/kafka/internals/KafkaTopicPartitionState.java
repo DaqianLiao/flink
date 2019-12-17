@@ -23,6 +23,8 @@ import org.apache.flink.annotation.Internal;
  * The state that the Flink Kafka Consumer holds for each Kafka partition.
  * Includes the Kafka descriptor for partitions.
  *
+ * Flink Kafka Consumer state，存储着 分区（包含更多信息）、offset、提交的 offset 信息
+ *
  * <p>This class describes the most basic state (only the offset), subclasses
  * define more elaborate state, containing current watermarks and timestamp
  * extractors.

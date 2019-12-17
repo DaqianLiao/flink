@@ -52,6 +52,8 @@ import static org.apache.flink.util.Preconditions.checkNotNull;
  * Base class for all fetchers, which implement the connections to Kafka brokers and
  * pull records from Kafka partitions.
  *
+ * 建立和 Kafka 的连接，从 Kafka 分区中拉取数据的抽象 fetchers 类
+ *
  * <p>This fetcher base class implements the logic around emitting records and tracking offsets,
  * as well as around the optional timestamp assignment and watermark generation.
  *

@@ -26,6 +26,8 @@ import org.apache.flink.annotation.Internal;
 public class OffsetCommitModes {
 
 	/**
+	 * 根据配置判断 offset 提交的方式
+	 *
 	 * Determine the offset commit mode using several configuration values.
 	 *
 	 * @param enableAutoCommit whether or not auto committing is enabled in the provided Kafka properties.
@@ -41,9 +43,11 @@ public class OffsetCommitModes {
 
 		if (enableCheckpointing) {
 			// if checkpointing is enabled, the mode depends only on whether committing on checkpoints is enabled
+			//如果开启了 Checkpoint 并且设置了 Checkpoint 的时候提交 offset，则当 Checkpoint 完成时会提交 offset 到 Kafka
 			return (enableCommitOnCheckpoint) ? OffsetCommitMode.ON_CHECKPOINTS : OffsetCommitMode.DISABLED;
 		} else {
 			// else, the mode depends only on whether auto committing is enabled in the provided Kafka properties
+			//否则看是否配置了自动提交，如果配置了，则自动提交到 Kafka
 			return (enableAutoCommit) ? OffsetCommitMode.KAFKA_PERIODIC : OffsetCommitMode.DISABLED;
 		}
 	}

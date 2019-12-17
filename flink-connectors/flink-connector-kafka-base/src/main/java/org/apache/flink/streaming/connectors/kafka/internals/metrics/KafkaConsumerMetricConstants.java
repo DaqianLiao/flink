@@ -22,6 +22,8 @@ import org.apache.flink.annotation.Internal;
 /**
  * A collection of Kafka consumer metrics related constant strings.
  *
+ * Kafka consumer metrics 常量
+ *
  * <p>The names must not be changed, as that would break backward compatibility for the consumer's metrics.
  */
 @Internal

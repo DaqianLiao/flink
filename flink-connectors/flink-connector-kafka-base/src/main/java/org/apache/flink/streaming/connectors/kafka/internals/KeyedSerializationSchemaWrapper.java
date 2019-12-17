@@ -27,6 +27,7 @@ import org.apache.flink.streaming.util.serialization.KeyedSerializationSchema;
  * @param <T> The type to serialize
  */
 @Internal
+//todo：根据 KafkaDeserializationSchemaWrapper 中的 https://issues.apache.org/jira/browse/FLINK-8354 替换成 KafkaSerializationSchema
 public class KeyedSerializationSchemaWrapper<T> implements KeyedSerializationSchema<T> {
 
 	private static final long serialVersionUID = 1351665280744549933L;

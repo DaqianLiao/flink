@@ -31,6 +31,9 @@ import static org.apache.flink.util.Preconditions.checkArgument;
 /**
  * A Kafka Topics Descriptor describes how the consumer subscribes to Kafka topics -
  * either a fixed list of topics, or a topic pattern.
+ *
+ * Flink 订阅 Kafka 消费时传入的 topic 形式，是 list 列表还是正则表达式
+ *
  */
 @Internal
 public class KafkaTopicsDescriptor implements Serializable {

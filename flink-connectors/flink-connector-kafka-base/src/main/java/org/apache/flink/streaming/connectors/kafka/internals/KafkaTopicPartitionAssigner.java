@@ -21,6 +21,8 @@ import org.apache.flink.annotation.Internal;
 
 /**
  * Utility for assigning Kafka partitions to consumer subtasks.
+ *
+ * 将 Kafka 分区分配给 subtask 消费的工具类
  */
 @Internal
 public class KafkaTopicPartitionAssigner {
@@ -28,6 +30,8 @@ public class KafkaTopicPartitionAssigner {
 	/**
 	 * Returns the index of the target subtask that a specific Kafka partition should be
 	 * assigned to.
+	 *
+	 * 传入 Kafka 的分区和算子的并行度数量，返回消费该分区的 subtask
 	 *
 	 * <p>The resulting distribution of partitions of a single topic has the following contract:
 	 * <ul>
@@ -49,6 +53,7 @@ public class KafkaTopicPartitionAssigner {
 	 * @return index of the target subtask that the Kafka partition should be assigned to.
 	 */
 	public static int assign(KafkaTopicPartition partition, int numParallelSubtasks) {
+		//todo：明报 Flink 怎么确保同一个分区的数据在每次重启的时候都是同一个 subtask 消费？
 		int startIndex = ((partition.getTopic().hashCode() * 31) & 0x7FFFFFFF) % numParallelSubtasks;
 
 		// here, the assumption is that the id of Kafka partitions are always ascending

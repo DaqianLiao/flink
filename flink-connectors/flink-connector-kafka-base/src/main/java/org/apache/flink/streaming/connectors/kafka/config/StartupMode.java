@@ -27,12 +27,15 @@ import org.apache.flink.streaming.connectors.kafka.internals.KafkaTopicPartition
 public enum StartupMode {
 
 	/** Start from committed offsets in ZK / Kafka brokers of a specific consumer group (default). */
+	//从 Kafka Topic 指定的消费组已提交的 offset 处开始消费
 	GROUP_OFFSETS(KafkaTopicPartitionStateSentinel.GROUP_OFFSET),
 
 	/** Start from the earliest offset possible. */
+	//从最开始处开始消费
 	EARLIEST(KafkaTopicPartitionStateSentinel.EARLIEST_OFFSET),
 
 	/** Start from the latest offset. */
+	//从最新的 offset 开始消费
 	LATEST(KafkaTopicPartitionStateSentinel.LATEST_OFFSET),
 
 	/**
@@ -40,6 +43,7 @@ public enum StartupMode {
 	 * Since this mode will have specific offsets to start with, we do not need a sentinel value;
 	 * using Long.MIN_VALUE as a placeholder.
 	 */
+	//每个分区从用户指定的时间戳开始消费
 	TIMESTAMP(Long.MIN_VALUE),
 
 	/**
@@ -47,6 +51,7 @@ public enum StartupMode {
 	 * Since this mode will have specific offsets to start with, we do not need a sentinel value;
 	 * using Long.MIN_VALUE as a placeholder.
 	 */
+	//每个分区从用户指定的 offset 开始消费
 	SPECIFIC_OFFSETS(Long.MIN_VALUE);
 
 	/** The sentinel offset value corresponding to this startup mode. */

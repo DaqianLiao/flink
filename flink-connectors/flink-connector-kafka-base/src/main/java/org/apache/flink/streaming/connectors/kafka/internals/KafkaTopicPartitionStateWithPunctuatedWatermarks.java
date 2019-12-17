@@ -27,6 +27,8 @@ import javax.annotation.Nullable;
  * A special version of the per-kafka-partition-state that additionally holds
  * a periodic watermark generator (and timestamp extractor) per partition.
  *
+ * 和 KafkaTopicPartitionStateWithPeriodicWatermarks 功能类似，只不过内部的水印生成方式不同
+ *
  * <p>This class is not thread safe, but it gives volatile access to the current
  * partition watermark ({@link #getCurrentPartitionWatermark()}).
  *

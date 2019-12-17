@@ -44,6 +44,8 @@ public abstract class FlinkKafkaPartitioner<T> implements Serializable {
 	/**
 	 * Determine the id of the partition that the record should be written to.
 	 *
+	 * 数据分区，数据往 Kafka 的哪个分区发送？
+	 *
 	 * @param record the record value
 	 * @param key serialized key of the record
 	 * @param value serialized value of the record

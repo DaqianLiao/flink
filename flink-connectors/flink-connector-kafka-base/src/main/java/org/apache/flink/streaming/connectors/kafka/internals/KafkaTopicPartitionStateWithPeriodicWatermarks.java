@@ -25,6 +25,8 @@ import org.apache.flink.streaming.api.watermark.Watermark;
  * A special version of the per-kafka-partition-state that additionally holds
  * a periodic watermark generator (and timestamp extractor) per partition.
  *
+ * KafkaTopicPartitionState 的子类，包含了 timestamp 和 Watermark 分配器和当前分区的 Watermark
+ *
  * @param <T> The type of records handled by the watermark generator
  * @param <KPH> The type of the Kafka partition descriptor, which varies across Kafka versions.
  */
@@ -51,12 +53,15 @@ public final class KafkaTopicPartitionStateWithPeriodicWatermarks<T, KPH> extend
 	// ------------------------------------------------------------------------
 
 	public long getTimestampForRecord(T record, long kafkaEventTimestamp) {
+		//水印提取的事件时间
 		return timestampsAndWatermarks.extractTimestamp(record, kafkaEventTimestamp);
 	}
 
 	public long getCurrentWatermarkTimestamp() {
+		//提取到水印时间
 		Watermark wm = timestampsAndWatermarks.getCurrentWatermark();
 		if (wm != null) {
+			//取最大水印
 			partitionWatermark = Math.max(partitionWatermark, wm.getTimestamp());
 		}
 		return partitionWatermark;

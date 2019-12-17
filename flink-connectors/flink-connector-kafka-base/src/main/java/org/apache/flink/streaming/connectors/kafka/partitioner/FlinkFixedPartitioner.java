@@ -24,6 +24,11 @@ import org.apache.flink.util.Preconditions;
 /**
  * A partitioner ensuring that each internal Flink partition ends up in one Kafka partition.
  *
+ * 确保每个 Flink 内部分区的数据会发送到 Kafka 的同一个分区
+ *
+ * 注意，一个 Kafka 分区可以包含来自多个 Flink 分区的数据，所以有的 Kafka 分区有来自多个 Flink 分区的数据，
+ * 但是一个 Flink 分区的数据只会发送到一个 Kafka 分区，所以并不是所有的 Kafka 分区都会有数据。
+ *
  * <p>Note, one Kafka partition can contain multiple Flink partitions.
  *
  * <p>Cases:

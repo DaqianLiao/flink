@@ -34,6 +34,8 @@ public class KafkaTopicPartitionStateSentinel {
 	/**
 	 * Magic number that defines the partition should start from the earliest offset.
 	 *
+	 * 从最开始的 offset 开始消费
+	 *
 	 * <p>This is used as a placeholder so that the actual earliest offset can be evaluated lazily
 	 * when the partition will actually start to be read by the consumer.
 	 */
@@ -42,6 +44,8 @@ public class KafkaTopicPartitionStateSentinel {
 	/**
 	 * Magic number that defines the partition should start from the latest offset.
 	 *
+	 * 从最新的 offset 开始消费
+	 *
 	 * <p>This is used as a placeholder so that the actual latest offset can be evaluated lazily
 	 * when the partition will actually start to be read by the consumer.
 	 */
@@ -49,6 +53,8 @@ public class KafkaTopicPartitionStateSentinel {
 
 	/**
 	 * Magic number that defines the partition should start from its committed group offset in Kafka.
+	 *
+	 * 从提交的 group offset 开始消费
 	 *
 	 * <p>This is used as a placeholder so that the actual committed group offset can be evaluated lazily
 	 * when the partition will actually start to be read by the consumer.

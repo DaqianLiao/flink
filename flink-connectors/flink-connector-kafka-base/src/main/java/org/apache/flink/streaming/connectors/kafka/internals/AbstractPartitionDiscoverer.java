@@ -29,6 +29,8 @@ import static org.apache.flink.util.Preconditions.checkNotNull;
 /**
  * Base class for all partition discoverers.
  *
+ * subtask 自动发现 Kafka 分区（包含中途新增分区）基础类
+ *
  * <p>This partition discoverer base class implements the logic around bookkeeping
  * discovered partitions, and using the information to determine whether or not there
  * are new partitions that the consumer subtask should subscribe to.
