@@ -78,6 +78,8 @@ import static org.apache.flink.util.Preconditions.checkNotNull;
  * Base class of all Flink Kafka Consumer data sources.
  * This implements the common behavior across all Kafka versions.
  *
+ * Flink Kafka Consumer 基础类
+ *
  * <p>The Kafka version specific behavior is defined mainly in the specific subclasses of the
  * {@link AbstractFetcher}.
  *
@@ -98,6 +100,9 @@ public abstract class FlinkKafkaConsumerBase<T> extends RichParallelSourceFuncti
 
 	/**
 	 * The default interval to execute partition discovery,
+	 *
+	 * 分区自动发现的时间间隔，默认是关闭的
+	 *
 	 * in milliseconds ({@code Long.MIN_VALUE}, i.e. disabled by default).
 	 */
 	public static final long PARTITION_DISCOVERY_DISABLED = Long.MIN_VALUE;
@@ -106,6 +111,7 @@ public abstract class FlinkKafkaConsumerBase<T> extends RichParallelSourceFuncti
 	public static final String KEY_DISABLE_METRICS = "flink.disable-metrics";
 
 	/** Configuration key to define the consumer's partition discovery interval, in milliseconds. */
+	//分区自动发现的时间间隔配置，如果该值没有配置，则使用 PARTITION_DISCOVERY_DISABLED 的值，默认关闭
 	public static final String KEY_PARTITION_DISCOVERY_INTERVAL_MILLIS = "flink.partition-discovery.interval-millis";
 
 	/** State name of the consumer's partition offset states. */
@@ -122,6 +128,7 @@ public abstract class FlinkKafkaConsumerBase<T> extends RichParallelSourceFuncti
 	protected final KafkaDeserializationSchema<T> deserializer;
 
 	/** The set of topic partitions that the source will read, with their initial offsets to start reading from. */
+	//订阅的 Kafka topic 的分区和对应的 offset
 	private Map<KafkaTopicPartition, Long> subscribedPartitionsToStartOffsets;
 
 	/** Optional timestamp extractor / watermark generator that will be run per Kafka partition,
@@ -136,6 +143,9 @@ public abstract class FlinkKafkaConsumerBase<T> extends RichParallelSourceFuncti
 
 	/**
 	 * User-set flag determining whether or not to commit on checkpoints.
+	 *
+	 * Checkpoint 是否提交 offset
+	 *
 	 * Note: this flag does not represent the final offset commit mode.
 	 */
 	private boolean enableCommitOnCheckpoints = true;
@@ -358,6 +368,10 @@ public abstract class FlinkKafkaConsumerBase<T> extends RichParallelSourceFuncti
 	 * Specifies the consumer to start reading from the earliest offset for all partitions.
 	 * This lets the consumer ignore any committed group offsets in Zookeeper / Kafka brokers.
 	 *
+	 * 指定程序从每个分区最开始的 offset 开始消费，程序会忽视已提交的 offset
+	 *
+	 * 但是如果作业是从 checkpoint 或者 savepoint 恢复时，则还是以状态中的 offset 为准
+	 *
 	 * <p>This method does not affect where partitions are read from when the consumer is restored
 	 * from a checkpoint or savepoint. When the consumer is restored from a checkpoint or
 	 * savepoint, only the offsets in the restored state will be used.
@@ -374,6 +388,10 @@ public abstract class FlinkKafkaConsumerBase<T> extends RichParallelSourceFuncti
 	/**
 	 * Specifies the consumer to start reading from the latest offset for all partitions.
 	 * This lets the consumer ignore any committed group offsets in Zookeeper / Kafka brokers.
+	 *
+	 * 指定程序从每个分区中最新的 offset 开始消费
+	 *
+	 * 但是如果作业是从 checkpoint 或者 savepoint 恢复时，则还是以状态中的 offset 为准
 	 *
 	 * <p>This method does not affect where partitions are read from when the consumer is restored
 	 * from a checkpoint or savepoint. When the consumer is restored from a checkpoint or
@@ -392,6 +410,8 @@ public abstract class FlinkKafkaConsumerBase<T> extends RichParallelSourceFuncti
 	 * Specifies the consumer to start reading partitions from a specified timestamp.
 	 * The specified timestamp must be before the current timestamp.
 	 * This lets the consumer ignore any committed group offsets in Zookeeper / Kafka brokers.
+	 *
+	 * 程序将从指定的 时间戳开始消费，注意传入的时间戳要比当前时间要早
 	 *
 	 * <p>The consumer will look up the earliest offset whose timestamp is greater than or equal
 	 * to the specific timestamp from Kafka. If there's no such offset, the consumer will use the
@@ -473,6 +493,8 @@ public abstract class FlinkKafkaConsumerBase<T> extends RichParallelSourceFuncti
 	 * ignores restored partitions that are no longer associated with the current specified topics or
 	 * topic pattern to subscribe to.
 	 *
+	 * 当程序从 checkpoint 或者 savepoint 恢复时，程序消费都是从状态中的 offset 开始消费，与代码中配置的指定消费模式无关
+	 *
 	 * <p>This method configures the consumer to not filter the restored partitions,
 	 * therefore always attempting to consume whatever partition was present in the
 	 * previous execution regardless of the specified topics to subscribe to in the
@@ -520,6 +542,7 @@ public abstract class FlinkKafkaConsumerBase<T> extends RichParallelSourceFuncti
 					if (KafkaTopicPartitionAssigner.assign(
 						restoredStateEntry.getKey(), getRuntimeContext().getNumberOfParallelSubtasks())
 							== getRuntimeContext().getIndexOfThisSubtask()){
+						//将状态中的 kafka 分区的 offset 恢复
 						subscribedPartitionsToStartOffsets.put(restoredStateEntry.getKey(), restoredStateEntry.getValue());
 					}
 				} else {
@@ -665,15 +688,18 @@ public abstract class FlinkKafkaConsumerBase<T> extends RichParallelSourceFuncti
 		this.failedCommits =  this.getRuntimeContext().getMetricGroup().counter(COMMITS_FAILED_METRICS_COUNTER);
 		final int subtaskIndex = this.getRuntimeContext().getIndexOfThisSubtask();
 
+		//在 checkpoint 完成后提交 offset 到 kafka 的回调
 		this.offsetCommitCallback = new KafkaCommitCallback() {
 			@Override
 			public void onSuccess() {
+				//如果提交成功，则 metric 成功提交的加 1
 				successfulCommits.inc();
 			}
 
 			@Override
 			public void onException(Throwable cause) {
 				LOG.warn(String.format("Consumer subtask %d failed async Kafka commit.", subtaskIndex), cause);
+				//如果提交出现异常，则 metric 提交失败的加 1
 				failedCommits.inc();
 			}
 		};
@@ -972,7 +998,7 @@ public abstract class FlinkKafkaConsumerBase<T> extends RichParallelSourceFuncti
 					LOG.debug("Consumer subtask {} has empty checkpoint state.", getRuntimeContext().getIndexOfThisSubtask());
 					return;
 				}
-
+				//checkpoint 完成后要提交 offset 到 Kafka
 				fetcher.commitInternalOffsetsToKafka(offsets, offsetCommitCallback);
 			} catch (Exception e) {
 				if (running) {

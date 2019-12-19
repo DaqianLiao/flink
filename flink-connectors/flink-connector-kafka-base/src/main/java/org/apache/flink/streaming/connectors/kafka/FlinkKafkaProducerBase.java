@@ -354,6 +354,7 @@ public abstract class FlinkKafkaProducerBase<IN> extends RichSinkFunction<IN> im
 
 		if (flushOnCheckpoint) {
 			// flushing is activated: We need to wait until pendingRecords is 0
+			//在 checkpoint 时进行 producer flush
 			flush();
 			synchronized (pendingRecordsLock) {
 				if (pendingRecords != 0) {

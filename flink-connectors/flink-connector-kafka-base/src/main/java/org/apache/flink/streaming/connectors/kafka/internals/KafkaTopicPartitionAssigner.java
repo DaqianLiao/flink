@@ -53,7 +53,7 @@ public class KafkaTopicPartitionAssigner {
 	 * @return index of the target subtask that the Kafka partition should be assigned to.
 	 */
 	public static int assign(KafkaTopicPartition partition, int numParallelSubtasks) {
-		//todo：明报 Flink 怎么确保同一个分区的数据在每次重启的时候都是同一个 subtask 消费？
+		//todo：明白 Flink 怎么确保同一个分区的数据在每次重启的时候都是同一个 subtask 消费？
 		int startIndex = ((partition.getTopic().hashCode() * 31) & 0x7FFFFFFF) % numParallelSubtasks;
 
 		// here, the assumption is that the id of Kafka partitions are always ascending
