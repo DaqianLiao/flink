@@ -118,6 +118,8 @@ public abstract class AbstractPartitionDiscoverer {
 	}
 
 	/**
+	 * 分区发现的真正方法
+	 *
 	 * Execute a partition discovery attempt for this subtask.
 	 * This method lets the partition discoverer update what partitions it has discovered so far.
 	 *
@@ -129,12 +131,13 @@ public abstract class AbstractPartitionDiscoverer {
 				List<KafkaTopicPartition> newDiscoveredPartitions;
 
 				// (1) get all possible partitions, based on whether we are subscribed to fixed topics or a topic pattern
-				if (topicsDescriptor.isFixedTopics()) {
+				if (topicsDescriptor.isFixedTopics()) {	//先判断消费的 topic 类型，是 list 的还是正则表达式的
 					newDiscoveredPartitions = getAllPartitionsForTopics(topicsDescriptor.getFixedTopics());
 				} else {
 					List<String> matchedTopics = getAllTopics();
 
 					// retain topics that match the pattern
+					//先获取到所有匹配的 topic
 					Iterator<String> iter = matchedTopics.iterator();
 					while (iter.hasNext()) {
 						if (!topicsDescriptor.isMatchingTopic(iter.next())) {
@@ -143,6 +146,7 @@ public abstract class AbstractPartitionDiscoverer {
 					}
 
 					if (matchedTopics.size() != 0) {
+						//然后根据匹配的 topic，获取所有 topic 的分区
 						// get partitions only for matched topics
 						newDiscoveredPartitions = getAllPartitionsForTopics(matchedTopics);
 					} else {

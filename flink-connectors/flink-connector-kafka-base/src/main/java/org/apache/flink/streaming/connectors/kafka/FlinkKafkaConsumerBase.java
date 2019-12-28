@@ -769,6 +769,7 @@ public abstract class FlinkKafkaConsumerBase<T> extends RichParallelSourceFuncti
 		}
 	}
 
+	//发现新的分区
 	private void createAndStartDiscoveryLoop(AtomicReference<Exception> discoveryLoopErrorRef) {
 		discoveryLoopThread = new Thread(() -> {
 			try {
