@@ -64,6 +64,7 @@ import static org.apache.flink.util.Preconditions.checkNotNull;
 @Internal
 public abstract class AbstractFetcher<T, KPH> {
 
+	//Kafka 消费数据源头是否就生成水印
 	private static final int NO_TIMESTAMPS_WATERMARKS = 0;
 	private static final int PERIODIC_WATERMARKS = 1;
 	private static final int PUNCTUATED_WATERMARKS = 2;
@@ -361,13 +362,13 @@ public abstract class AbstractFetcher<T, KPH> {
 				// emit the record, using the checkpoint lock to guarantee
 				// atomicity of record emission and offset state update
 				synchronized (checkpointLock) {
-					sourceContext.collect(record);
-					partitionState.setOffset(offset);
+					sourceContext.collect(record);	//将数据往下发
+					partitionState.setOffset(offset);	//更新分区的 offset 状态
 				}
-			} else if (timestampWatermarkMode == PERIODIC_WATERMARKS) {
-				emitRecordWithTimestampAndPeriodicWatermark(record, partitionState, offset, Long.MIN_VALUE);
+			} else if (timestampWatermarkMode == PERIODIC_WATERMARKS) {	//时间和定期的水印
+				emitRecordWithTimestampAndPeriodicWatermark(record, partitionState, offset, Long.MIN_VALUE);//todo：why the timestamp
 			} else {
-				emitRecordWithTimestampAndPunctuatedWatermark(record, partitionState, offset, Long.MIN_VALUE);
+				emitRecordWithTimestampAndPunctuatedWatermark(record, partitionState, offset, Long.MIN_VALUE);//todo：why the timestamp
 			}
 		} else {
 			// if the record is null, simply just update the offset state for partition

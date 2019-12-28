@@ -136,6 +136,7 @@ public class Kafka09Fetcher<T> extends AbstractFetcher<T, TopicPartition> {
 				final ConsumerRecords<byte[], byte[]> records = handover.pollNext();
 
 				// get the records for each topic partition
+				//遍历每个分区的数据
 				for (KafkaTopicPartitionState<TopicPartition> partition : subscribedPartitionStates()) {
 
 					List<ConsumerRecord<byte[], byte[]>> partitionRecords =
@@ -194,6 +195,7 @@ public class Kafka09Fetcher<T> extends AbstractFetcher<T, TopicPartition> {
 			@SuppressWarnings("UnusedParameters") ConsumerRecord<?, ?> consumerRecord) throws Exception {
 
 		// the 0.9 Fetcher does not try to extract a timestamp
+		//数据记录、分区、offset 信息
 		emitRecord(record, partition, offset);
 	}
 
@@ -237,6 +239,7 @@ public class Kafka09Fetcher<T> extends AbstractFetcher<T, TopicPartition> {
 				long offsetToCommit = lastProcessedOffset + 1;
 
 				offsetsToCommit.put(partition.getKafkaPartitionHandle(), new OffsetAndMetadata(offsetToCommit));
+				//将当前拿到的 offset 和要提交的 offset 信息先存储在状态中
 				partition.setCommittedOffset(offsetToCommit);
 			}
 		}
