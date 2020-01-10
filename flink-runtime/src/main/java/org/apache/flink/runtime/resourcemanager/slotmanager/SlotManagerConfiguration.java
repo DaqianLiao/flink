@@ -33,14 +33,16 @@ import scala.concurrent.duration.Duration;
 
 /**
  * Configuration for the {@link SlotManager}.
+ *
+ * SlotManager 的配置
  */
 public class SlotManagerConfiguration {
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(SlotManagerConfiguration.class);
 
-	private final Time taskManagerRequestTimeout;
-	private final Time slotRequestTimeout;
-	private final Time taskManagerTimeout;
+	private final Time taskManagerRequestTimeout;	//TaskManager 请求超时时间
+	private final Time slotRequestTimeout;	//slot 请求超时时间
+	private final Time taskManagerTimeout;	//
 	private final boolean waitResultConsumedBeforeRelease;
 
 	public SlotManagerConfiguration(
@@ -71,8 +73,9 @@ public class SlotManagerConfiguration {
 		return waitResultConsumedBeforeRelease;
 	}
 
+	//从配置中读取到 slot 相关的配置
 	public static SlotManagerConfiguration fromConfiguration(Configuration configuration) throws ConfigurationException {
-		final String strTimeout = configuration.getString(AkkaOptions.ASK_TIMEOUT);
+		final String strTimeout = configuration.getString(AkkaOptions.ASK_TIMEOUT);	//akka 请求超时时间
 		final Time rpcTimeout;
 
 		try {
@@ -94,12 +97,13 @@ public class SlotManagerConfiguration {
 
 	private static Time getSlotRequestTimeout(final Configuration configuration) {
 		final long slotRequestTimeoutMs;
-		if (configuration.contains(ResourceManagerOptions.SLOT_REQUEST_TIMEOUT)) {
+		if (configuration.contains(ResourceManagerOptions.SLOT_REQUEST_TIMEOUT)) {	//过期的指标
 			LOGGER.warn("Config key {} is deprecated; use {} instead.",
 				ResourceManagerOptions.SLOT_REQUEST_TIMEOUT,
 				JobManagerOptions.SLOT_REQUEST_TIMEOUT);
 			slotRequestTimeoutMs = configuration.getLong(ResourceManagerOptions.SLOT_REQUEST_TIMEOUT);
 		} else {
+			//slot 请求超时时间，默认是 5 分钟
 			slotRequestTimeoutMs = configuration.getLong(JobManagerOptions.SLOT_REQUEST_TIMEOUT);
 		}
 		return Time.milliseconds(slotRequestTimeoutMs);

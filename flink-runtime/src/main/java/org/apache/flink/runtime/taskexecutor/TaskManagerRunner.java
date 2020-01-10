@@ -323,8 +323,10 @@ public class TaskManagerRunner implements FatalErrorHandler, AutoCloseableAsync 
 	}
 
 	public static void runTaskManager(Configuration configuration, ResourceID resourceId) throws Exception {
+		//初始化很多相关的服务，已经在之前的源码解析中讲过
 		final TaskManagerRunner taskManagerRunner = new TaskManagerRunner(configuration, resourceId);
 
+		//启动
 		taskManagerRunner.start();
 	}
 

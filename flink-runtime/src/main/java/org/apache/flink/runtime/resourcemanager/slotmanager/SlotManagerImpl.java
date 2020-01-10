@@ -64,6 +64,8 @@ import java.util.concurrent.TimeoutException;
 
 /**
  * Implementation of {@link SlotManager}.
+ *
+ * SlotManager 的实现类
  */
 public class SlotManagerImpl implements SlotManager {
 	private static final Logger LOG = LoggerFactory.getLogger(SlotManagerImpl.class);
@@ -72,21 +74,27 @@ public class SlotManagerImpl implements SlotManager {
 	private final ScheduledExecutor scheduledExecutor;
 
 	/** Timeout for slot requests to the task manager. */
+	//向 TaskManager 请求 slot 超时时间
 	private final Time taskManagerRequestTimeout;
 
 	/** Timeout after which an allocation is discarded. */
+	//超时多久之后，分配将被丢弃
 	private final Time slotRequestTimeout;
 
 	/** Timeout after which an unused TaskManager is released. */
+	//超时多久之后，未使用的 TaskManager 将被释放
 	private final Time taskManagerTimeout;
 
 	/** Map for all registered slots. */
+	//所有可以使用的 slot
 	private final HashMap<SlotID, TaskManagerSlot> slots;
 
 	/** Index of all currently free slots. */
+	//所有空闲的 slot 的索引
 	private final LinkedHashMap<SlotID, TaskManagerSlot> freeSlots;
 
 	/** All currently registered task managers. */
+	//当前所有注册的 TaskManager
 	private final HashMap<InstanceID, TaskManagerRegistration> taskManagerRegistrations;
 
 	/** Map of fulfilled and active allocations for request deduplication purposes. */

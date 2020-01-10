@@ -62,6 +62,7 @@ public class ResourceManagerRuntimeServicesConfiguration {
 				"value " + ResourceManagerOptions.JOB_TIMEOUT + '.', e);
 		}
 
+		//SlotManager 相关的配置
 		final SlotManagerConfiguration slotManagerConfiguration = SlotManagerConfiguration.fromConfiguration(configuration);
 
 		return new ResourceManagerRuntimeServicesConfiguration(jobTimeout, slotManagerConfiguration);

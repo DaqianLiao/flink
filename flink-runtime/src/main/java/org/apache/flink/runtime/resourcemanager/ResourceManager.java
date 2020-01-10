@@ -737,15 +737,16 @@ public abstract class ResourceManager<WorkerType extends ResourceIDRetrievable>
 		}
 	}
 
+	//注册 TaskManager 个数和 slot 个数的 metrics
 	private void registerSlotAndTaskExecutorMetrics() {
 		jobManagerMetricGroup.gauge(
-			MetricNames.TASK_SLOTS_AVAILABLE,
+			MetricNames.TASK_SLOTS_AVAILABLE,	//可用的 slot
 			() -> (long) slotManager.getNumberFreeSlots());
 		jobManagerMetricGroup.gauge(
-			MetricNames.TASK_SLOTS_TOTAL,
+			MetricNames.TASK_SLOTS_TOTAL,	//总共的 slot
 			() -> (long) slotManager.getNumberRegisteredSlots());
 		jobManagerMetricGroup.gauge(
-			MetricNames.NUM_REGISTERED_TASK_MANAGERS,
+			MetricNames.NUM_REGISTERED_TASK_MANAGERS,	//TaskManager 的个数
 			() -> (long) taskExecutors.size());
 	}
 
