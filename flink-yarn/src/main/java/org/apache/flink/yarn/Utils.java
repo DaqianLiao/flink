@@ -69,6 +69,7 @@ import static org.apache.flink.yarn.YarnConfigKeys.ENV_FLINK_CLASSPATH;
 
 /**
  * Utility class that provides helper methods to work with Apache Hadoop YARN.
+ * YARN 的工具类
  */
 public final class Utils {
 

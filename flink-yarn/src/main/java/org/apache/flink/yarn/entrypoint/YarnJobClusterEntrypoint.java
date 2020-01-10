@@ -38,6 +38,8 @@ import java.util.Map;
 
 /**
  * Entry point for Yarn per-job clusters.
+ *
+ * YARN per job 模式入口类
  */
 public class YarnJobClusterEntrypoint extends JobClusterEntrypoint {
 
@@ -99,6 +101,7 @@ public class YarnJobClusterEntrypoint extends JobClusterEntrypoint {
 			configuration,
 			workingDirectory);
 
+		//最后还是调用 runtime 去做启动相关的所有组件
 		ClusterEntrypoint.runClusterEntrypoint(yarnJobClusterEntrypoint);
 	}
 }

@@ -36,6 +36,9 @@ import java.util.concurrent.Executors;
  * ResourceManager that is statically configured in the Flink configuration.
  *
  * <h3>Handled failure types</h3>
+ *
+ *  如果是 operator 或者 Task Manager 失败，可以从 checkpoint 中恢复
+ *
  * <ul>
  *     <li><b>User code & operator failures:</b> Failed operators are recovered from checkpoints.</li>
  *     <li><b>Task Manager Failures:</b> Failed Task Managers are restarted and their tasks are
@@ -43,6 +46,9 @@ import java.util.concurrent.Executors;
  * </ul>
  *
  * <h3>Non-recoverable failure types</h3>
+ *
+ * 如果是 pplication Master 出现错误的话，则恢复不了，因为 TaskManager 找不到 AM 的地址
+ *
  * <ul>
  *     <li><b>Application Master failures:</b> These failures cannot be recovered, because TaskManagers
  *     have no way to discover the new Application Master's address.</li>
@@ -52,6 +58,8 @@ import java.util.concurrent.Executors;
  * except for checkpoints, which are in the configured checkpoint directory. That way,
  * checkpoints can be resumed with a new job/application, even if the complete YARN application
  * is killed and cleaned up.
+ *
+ * ResourceManager 和 JobManager 都运行在 AM 同一个进程中
  *
  * <p>Because ResourceManager and JobManager run both in the same process (Application Master), they
  * use an embedded leader election service to find each other.

@@ -825,6 +825,7 @@ public class FlinkYarnSessionCli extends AbstractCustomCommandLine<ApplicationId
 		}
 	}
 
+	//flink on yarn session 启动命令传入参数的入口
 	public static void main(final String[] args) {
 		final String configurationDirectory = CliFrontend.getConfigurationDirectoryFromEnv();
 

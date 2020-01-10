@@ -62,7 +62,9 @@ public class YarnResourceManagerFactory extends ActiveResourceManagerFactory<Yar
 			ClusterInformation clusterInformation,
 			@Nullable String webInterfaceUrl,
 			JobManagerMetricGroup jobManagerMetricGroup) throws Exception {
+		//RM 的配置，获取到超时时间和 SlotManager 的相关配置
 		final ResourceManagerRuntimeServicesConfiguration rmServicesConfiguration = ResourceManagerRuntimeServicesConfiguration.fromConfiguration(configuration);
+		//RM
 		final ResourceManagerRuntimeServices rmRuntimeServices = ResourceManagerRuntimeServices.fromConfiguration(
 			rmServicesConfiguration,
 			highAvailabilityServices,

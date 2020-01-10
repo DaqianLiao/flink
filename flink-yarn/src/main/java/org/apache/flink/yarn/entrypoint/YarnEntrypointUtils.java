@@ -47,6 +47,7 @@ import java.util.Map;
 /**
  * This class contains utility methods for the {@link YarnSessionClusterEntrypoint} and
  * {@link YarnJobClusterEntrypoint}.
+ * 工具类，获取配置、记录 YARN 信息
  */
 public class YarnEntrypointUtils {
 

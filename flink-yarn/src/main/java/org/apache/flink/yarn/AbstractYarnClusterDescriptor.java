@@ -110,6 +110,7 @@ import static org.apache.flink.yarn.cli.FlinkYarnSessionCli.getDynamicProperties
 
 /**
  * The descriptor with deployment information for deploying a Flink cluster on Yarn.
+ * Flink cluster on Yarn 的 descriptor，包含启动参数需要的字段
  */
 public abstract class AbstractYarnClusterDescriptor implements ClusterDescriptor<ApplicationId> {
 	private static final Logger LOG = LoggerFactory.getLogger(AbstractYarnClusterDescriptor.class);

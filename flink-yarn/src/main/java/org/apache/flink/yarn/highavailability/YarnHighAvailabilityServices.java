@@ -65,6 +65,7 @@ import static org.apache.flink.util.Preconditions.checkState;
  * }
  * }</pre>
  */
+
 public abstract class YarnHighAvailabilityServices implements HighAvailabilityServices {
 
 	/** The name of the sub directory in which Flink stores the recovery data. */

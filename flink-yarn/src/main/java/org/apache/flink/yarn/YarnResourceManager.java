@@ -80,6 +80,8 @@ import java.util.concurrent.ConcurrentMap;
 /**
  * The yarn implementation of the resource manager. Used when the system is started
  * via the resource framework YARN.
+ *
+ * YARN 资源管理器
  */
 public class YarnResourceManager extends ResourceManager<YarnWorkerNode> implements AMRMClientAsync.CallbackHandler {
 
@@ -297,8 +299,9 @@ public class YarnResourceManager extends ResourceManager<YarnWorkerNode> impleme
 		FinalApplicationStatus yarnStatus = getYarnStatus(finalStatus);
 		log.info("Unregister application from the YARN Resource Manager with final status {}.", yarnStatus);
 
+		//获取 HistoryServer url
 		final Optional<URL> historyServerURL = HistoryServerUtils.getHistoryServerURL(flinkConfig);
-
+		//获取 Tracking URL
 		final String appTrackingUrl = historyServerURL.map(URL::toString).orElse("");
 
 		try {
@@ -315,6 +318,7 @@ public class YarnResourceManager extends ResourceManager<YarnWorkerNode> impleme
 		if (!slotsPerWorker.iterator().next().isMatching(resourceProfile)) {
 			return Collections.emptyList();
 		}
+		//申请 yarn container
 		requestYarnContainer();
 		return slotsPerWorker;
 	}
@@ -329,10 +333,12 @@ public class YarnResourceManager extends ResourceManager<YarnWorkerNode> impleme
 		final Container container = workerNode.getContainer();
 		log.info("Stopping container {}.", container.getId());
 		try {
+			//YARN Node Manager 停止 container
 			nodeManagerClient.stopContainer(container.getId(), container.getNodeId());
 		} catch (final Exception e) {
 			log.warn("Error while calling YARN Node Manager to stop container", e);
 		}
+		//ResourceManager 释放 container
 		resourceManagerClient.releaseAssignedContainer(container.getId());
 		workerNodeMap.remove(workerNode.getResourceID());
 		return true;
@@ -519,9 +525,11 @@ public class YarnResourceManager extends ResourceManager<YarnWorkerNode> impleme
 	}
 
 	private void requestYarnContainer() {
+		//通过资源管理器申请 Container 请求
 		resourceManagerClient.addContainerRequest(getContainerRequest());
 
 		// make sure we transmit the request fast and receive fast news of granted allocations
+		// 增加心跳来判断请求是否及时响应
 		resourceManagerClient.setHeartbeatInterval(containerRequestHeartbeatIntervalMillis);
 		numPendingContainerRequests++;
 

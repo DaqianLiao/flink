@@ -29,6 +29,8 @@ import static org.apache.flink.configuration.description.TextElement.text;
 /**
  * This class holds configuration constants used by Flink's YARN runners.
  *
+ * Flink YARN 的配置
+ *
  * <p>These options are not expected to be ever configured by users explicitly.
  */
 public class YarnConfigOptions {
@@ -51,6 +53,8 @@ public class YarnConfigOptions {
 
 	/**
 	 * The vcores used by YARN application master.
+	 *
+	 * appmaster 虚拟核，默认就 1 核，感觉有点多啊
 	 */
 	public static final ConfigOption<Integer> APP_MASTER_VCORES =
 		key("yarn.appmaster.vcores")
@@ -99,6 +103,8 @@ public class YarnConfigOptions {
 	 * Set the number of retries for failed YARN ApplicationMasters/JobManagers in high
 	 * availability mode. This value is usually limited by YARN.
 	 * By default, it's 1 in the standalone case and 2 in the high availability case.
+	 *
+	 * yarn 应用的重试次数，重启后 JobManager 地址会飘，这点比较麻烦，会导致 HA 配置好的地址有问题
 	 *
 	 * <p>>Note: This option returns a String since Integer options must have a static default value.
 	 */

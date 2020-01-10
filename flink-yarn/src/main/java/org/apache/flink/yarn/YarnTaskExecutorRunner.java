@@ -103,11 +103,13 @@ public class YarnTaskExecutorRunner {
 				"ContainerId variable %s not set", YarnResourceManager.ENV_FLINK_CONTAINER_ID);
 
 			SecurityUtils.getInstalledContext().runSecured((Callable<Void>) () -> {
+				//启动 TaskManager
 				TaskManagerRunner.runTaskManager(configuration, new ResourceID(containerId));
 				return null;
 			});
 		}
 		catch (Throwable t) {
+			//打印启动 TaskManager 失败的异常日志
 			final Throwable strippedThrowable = ExceptionUtils.stripException(t, UndeclaredThrowableException.class);
 			// make sure that everything whatever ends up in the log
 			LOG.error("YARN TaskManager initialization failed.", strippedThrowable);

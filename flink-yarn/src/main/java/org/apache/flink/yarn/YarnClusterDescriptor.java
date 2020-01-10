@@ -35,6 +35,7 @@ import org.apache.hadoop.yarn.conf.YarnConfiguration;
 /**
  * Implementation of {@link AbstractYarnClusterDescriptor} which is used to start the
  * application master.
+ *
  */
 public class YarnClusterDescriptor extends AbstractYarnClusterDescriptor {
 

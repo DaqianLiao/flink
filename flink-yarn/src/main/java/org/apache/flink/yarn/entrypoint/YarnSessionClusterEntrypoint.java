@@ -37,6 +37,8 @@ import java.util.Map;
 
 /**
  * Entry point for Yarn session clusters.
+ *
+ * YARN session 集群模式的启动入口类
  */
 public class YarnSessionClusterEntrypoint extends SessionClusterEntrypoint {
 

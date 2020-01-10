@@ -26,6 +26,8 @@ import org.apache.hadoop.yarn.api.records.Container;
 
 /**
  * A stored YARN worker, which contains the YARN container.
+ *
+ *
  */
 public class YarnWorkerNode implements ResourceIDRetrievable {
 

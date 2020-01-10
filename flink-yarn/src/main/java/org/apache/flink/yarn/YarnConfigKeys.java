@@ -20,6 +20,8 @@ package org.apache.flink.yarn;
 
 /**
  * The Yarn environment variables used for settings of the containers.
+ *
+ * Yarn 环境变量配置
  */
 public class YarnConfigKeys {
 

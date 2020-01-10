@@ -35,6 +35,9 @@ import java.util.concurrent.TimeUnit;
 
 /**
  * Utility class which monitors the specified yarn application status periodically.
+ *
+ * 周期性监控指定 YARN 应用状态信息的工具类
+ *
  */
 public class YarnApplicationStatusMonitor implements AutoCloseable {
 
@@ -87,8 +90,27 @@ public class YarnApplicationStatusMonitor implements AutoCloseable {
 				return;
 			}
 
+			//这个状态是通过 YARN 的接口来获取的，YARN 定义的应用状态信息有下面几种：
+			/*
+			    NEW,
+				NEW_SAVING,
+				SUBMITTED,
+				ACCEPTED,
+				RUNNING,
+				FINISHED,
+				FAILED,
+				KILLED;
+			 */
 			YarnApplicationState yarnApplicationState = applicationReport.getYarnApplicationState();
 
+			//而在 Flink 中的应用状态信息有下面几种：
+			/*
+				SUCCEEDED,
+				FAILED,
+				CANCELED,
+				UNKNOWN;
+			 */
+			//仅仅依赖 YARN 上的两种状态（FAILED 和 KILLED）来判断是失败，其他的状态都认为 Flink 应用的状态是 SUCCEEDED 的（todo：判断成功所以可能会有问题）。
 			if (yarnApplicationState == YarnApplicationState.FAILED || yarnApplicationState == YarnApplicationState.KILLED) {
 				applicationStatus = ApplicationStatus.FAILED;
 			} else {

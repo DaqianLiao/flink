@@ -31,6 +31,8 @@ import java.io.IOException;
  * Abstract base class for the high availability services for Flink YARN applications that support
  * no master fail over.
  *
+ *
+ *
  * <p>Internally, these services put their recovery data into YARN's working directory,
  * except for checkpoints, which are in the configured checkpoint directory. That way,
  * checkpoints can be resumed with a new job/application, even if the complete YARN application
