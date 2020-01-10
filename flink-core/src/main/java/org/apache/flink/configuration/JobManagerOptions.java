@@ -153,7 +153,7 @@ public class JobManagerOptions {
 	 */
 	public static final ConfigOption<Long> JOB_STORE_EXPIRATION_TIME =
 		key("jobstore.expiration-time")
-		.defaultValue(60L * 60L)
+		.defaultValue(60L * 60L)	//默认一小时后清除完成的作业
 		.withDescription("The time in seconds after which a completed job expires and is purged from the job store.");
 
 	/**

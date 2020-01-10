@@ -20,6 +20,7 @@ package org.apache.flink.runtime.metrics;
 
 /**
  * Collection of metric names.
+ * metrics 名字
  */
 public class MetricNames {
 	private MetricNames() {

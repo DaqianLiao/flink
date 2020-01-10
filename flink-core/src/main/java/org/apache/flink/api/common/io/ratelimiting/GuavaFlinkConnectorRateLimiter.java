@@ -23,6 +23,8 @@ import org.apache.flink.api.common.functions.RuntimeContext;
 import org.apache.flink.shaded.guava18.com.google.common.util.concurrent.RateLimiter;
 
 /**
+ * 使用 Guava 中的 RateLimiter 做消费数据的流控
+ *
  * An implemetation of {@link FlinkConnectorRateLimiter} that uses Guava's RateLimiter for rate limiting.
  */
 public class GuavaFlinkConnectorRateLimiter implements FlinkConnectorRateLimiter {

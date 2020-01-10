@@ -366,9 +366,9 @@ public abstract class AbstractFetcher<T, KPH> {
 					partitionState.setOffset(offset);	//更新分区的 offset 状态
 				}
 			} else if (timestampWatermarkMode == PERIODIC_WATERMARKS) {	//时间和定期的水印
-				emitRecordWithTimestampAndPeriodicWatermark(record, partitionState, offset, Long.MIN_VALUE);//todo：why the timestamp
+				emitRecordWithTimestampAndPeriodicWatermark(record, partitionState, offset, Long.MIN_VALUE);//因为这里只是将数据下发，但是并没有将数据的时间也下发，所以选择了一个默认的最小值
 			} else {
-				emitRecordWithTimestampAndPunctuatedWatermark(record, partitionState, offset, Long.MIN_VALUE);//todo：why the timestamp
+				emitRecordWithTimestampAndPunctuatedWatermark(record, partitionState, offset, Long.MIN_VALUE);
 			}
 		} else {
 			// if the record is null, simply just update the offset state for partition
@@ -402,7 +402,7 @@ public abstract class AbstractFetcher<T, KPH> {
 					partitionState.setOffset(offset);
 				}
 			} else if (timestampWatermarkMode == PERIODIC_WATERMARKS) {
-				emitRecordWithTimestampAndPeriodicWatermark(record, partitionState, offset, timestamp);
+				emitRecordWithTimestampAndPeriodicWatermark(record, partitionState, offset, timestamp);//将数据和时间一起下发
 			} else {
 				emitRecordWithTimestampAndPunctuatedWatermark(record, partitionState, offset, timestamp);
 			}

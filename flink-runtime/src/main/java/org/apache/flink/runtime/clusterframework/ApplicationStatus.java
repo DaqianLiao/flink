@@ -22,6 +22,8 @@ import org.apache.flink.runtime.jobgraph.JobStatus;
 
 /**
  * The status of an application.
+ *
+ * 应用的状态信息枚举类
  */
 public enum ApplicationStatus {
 
@@ -71,7 +73,6 @@ public enum ApplicationStatus {
 					return CANCELED;
 				case FINISHED:
 					return SUCCEEDED;
-
 				default:
 					return UNKNOWN;
 			}

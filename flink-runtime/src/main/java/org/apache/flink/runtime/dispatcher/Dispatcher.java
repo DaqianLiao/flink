@@ -354,6 +354,7 @@ public abstract class Dispatcher extends FencedRpcEndpoint<DispatcherId> impleme
 
 		final CompletableFuture<JobManagerRunner> jobManagerRunnerFuture = createJobManagerRunner(jobGraph);
 
+		//运行作业的时候会将作业的 JobGraph id 和其 JobManagerRunner 结果存储在一个 map 中
 		jobManagerRunnerFutures.put(jobGraph.getJobID(), jobManagerRunnerFuture);
 
 		return jobManagerRunnerFuture
@@ -983,6 +984,7 @@ public abstract class Dispatcher extends FencedRpcEndpoint<DispatcherId> impleme
 	}
 
 	private void registerDispatcherMetrics(MetricGroup jobManagerMetricGroup) {
+		//运行的 Flink 作业的个数
 		jobManagerMetricGroup.gauge(MetricNames.NUM_RUNNING_JOBS,
 			() -> (long) jobManagerRunnerFutures.size());
 	}

@@ -36,6 +36,8 @@ import org.apache.flink.util.OutputTag;
 public interface Output<T> extends Collector<T> {
 
 	/**
+	 * 发出水印，水印会广播到下游的所有算子
+	 *
 	 * Emits a {@link Watermark} from an operator. This watermark is broadcast to all downstream
 	 * operators.
 	 *
@@ -45,6 +47,8 @@ public interface Output<T> extends Collector<T> {
 	void emitWatermark(Watermark mark);
 
 	/**
+	 * 将数据发到指定的 OutputTag 的侧流输出（side output）
+	 *
 	 * Emits a record the side output identified by the given {@link OutputTag}.
 	 *
 	 * @param record The record to collect.
