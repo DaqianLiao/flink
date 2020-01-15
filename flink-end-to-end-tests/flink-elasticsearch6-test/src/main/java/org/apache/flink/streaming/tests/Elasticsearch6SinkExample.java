@@ -90,6 +90,9 @@ public class Elasticsearch6SinkExample {
 		env.execute("Elasticsearch 6.x end to end sink test example");
 	}
 
+	/**
+	 * 自定义失败异常处理，将异常的数据写入新的索引里面
+	 */
 	private static class CustomFailureHandler implements ActionRequestFailureHandler {
 
 		private static final long serialVersionUID = 942269087742453482L;
@@ -120,6 +123,13 @@ public class Elasticsearch6SinkExample {
 		}
 	}
 
+	/**
+	 * 插入 es 的数据
+	 *
+	 * @param element
+	 * @param parameterTool
+	 * @return
+	 */
 	private static IndexRequest createIndexRequest(String element, ParameterTool parameterTool) {
 		Map<String, Object> json = new HashMap<>();
 		json.put("data", element);
@@ -142,6 +152,13 @@ public class Elasticsearch6SinkExample {
 			.source(json);
 	}
 
+	/**
+	 * 更新 es 数据
+	 *
+	 * @param element
+	 * @param parameterTool
+	 * @return
+	 */
 	private static UpdateRequest createUpdateRequest(Tuple2<String, String> element, ParameterTool parameterTool) {
 		Map<String, Object> json = new HashMap<>();
 		json.put("data", element.f1);

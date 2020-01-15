@@ -94,6 +94,8 @@ public abstract class ElasticsearchSinkBase<T, C extends AutoCloseable> extends 
 	}
 
 	/**
+	 * 当请求失败后的重试
+	 *
 	 * Provides a backoff policy for bulk requests. Whenever a bulk request is rejected due to resource constraints
 	 * (i.e. the client's internal thread pool is full), the backoff policy decides how long the bulk processor will
 	 * wait before the operation is retried internally.
@@ -160,9 +162,11 @@ public abstract class ElasticsearchSinkBase<T, C extends AutoCloseable> extends 
 	/** User-provided handler for failed {@link ActionRequest ActionRequests}. */
 	private final ActionRequestFailureHandler failureHandler;
 
+	//在 checkpoint 的时候 flush
 	/** If true, the producer will wait until all outstanding action requests have been sent to Elasticsearch. */
 	private boolean flushOnCheckpoint = true;
 
+	//请求
 	/** Provided to the user via the {@link ElasticsearchSinkFunction} to add {@link ActionRequest ActionRequests}. */
 	private transient RequestIndexer requestIndexer;
 
@@ -177,8 +181,12 @@ public abstract class ElasticsearchSinkBase<T, C extends AutoCloseable> extends 
 	private final ElasticsearchApiCallBridge<C> callBridge;
 
 	/**
+	 * ES 没有确认成功的请求数据量，该字段只有在 flushOnCheckpoint 设置为 true 的时候才起作用
+	 *
 	 * Number of pending action requests not yet acknowledged by Elasticsearch.
 	 * This value is maintained only if {@link ElasticsearchSinkBase#flushOnCheckpoint} is {@code true}.
+	 *
+	 * 该值在用户新增请求（或者失败重试）时增加，在监听到 BulkProcessor 成功写入后减少
 	 *
 	 * <p>This is incremented whenever the user adds (or re-adds through the {@link ActionRequestFailureHandler}) requests
 	 * to the {@link RequestIndexer}. It is decremented for each completed request of a bulk request, in
@@ -194,6 +202,8 @@ public abstract class ElasticsearchSinkBase<T, C extends AutoCloseable> extends 
 	private transient BulkProcessor bulkProcessor;
 
 	/**
+	 * 该值是监听 BulkProcessor 写入的时候 callbacks 是否抛出异常
+	 *
 	 * This is set from inside the {@link BulkProcessor.Listener} if a {@link Throwable} was thrown in callbacks and
 	 * the user considered it should fail the sink via the
 	 * {@link ActionRequestFailureHandler#onFailure(ActionRequest, Throwable, int, RequestIndexer)} method.
@@ -234,6 +244,7 @@ public abstract class ElasticsearchSinkBase<T, C extends AutoCloseable> extends 
 
 		ParameterTool params = ParameterTool.fromMap(userConfig);
 
+		//根据 bulk 配置赋值
 		if (params.has(CONFIG_KEY_BULK_FLUSH_MAX_ACTIONS)) {
 			bulkProcessorFlushMaxActions = params.getInt(CONFIG_KEY_BULK_FLUSH_MAX_ACTIONS);
 			userConfig.remove(CONFIG_KEY_BULK_FLUSH_MAX_ACTIONS);
@@ -255,6 +266,7 @@ public abstract class ElasticsearchSinkBase<T, C extends AutoCloseable> extends 
 			bulkProcessorFlushIntervalMillis = null;
 		}
 
+		//根据失败重试的配置赋值
 		boolean bulkProcessorFlushBackoffEnable = params.getBoolean(CONFIG_KEY_BULK_FLUSH_BACKOFF_ENABLE, true);
 		userConfig.remove(CONFIG_KEY_BULK_FLUSH_BACKOFF_ENABLE);
 
@@ -297,6 +309,7 @@ public abstract class ElasticsearchSinkBase<T, C extends AutoCloseable> extends 
 	@Override
 	public void open(Configuration parameters) throws Exception {
 		client = callBridge.createClient(userConfig);
+		//构建 BulkProcessor
 		bulkProcessor = buildBulkProcessor(new BulkProcessorListener());
 		requestIndexer = callBridge.createBulkProcessorIndexer(bulkProcessor, flushOnCheckpoint, numPendingRequests);
 		failureRequestIndexer = new BufferingNoOpRequestIndexer();
@@ -305,6 +318,7 @@ public abstract class ElasticsearchSinkBase<T, C extends AutoCloseable> extends 
 	@Override
 	public void invoke(T value, Context context) throws Exception {
 		checkAsyncErrorsAndRequests();
+		//使用 ElasticsearchSinkFunction 处理数据
 		elasticsearchSinkFunction.process(value, getRuntimeContext(), requestIndexer);
 	}
 
@@ -344,6 +358,8 @@ public abstract class ElasticsearchSinkBase<T, C extends AutoCloseable> extends 
 	}
 
 	/**
+	 * 构建 BulkProcessor，传入监听 Listener
+	 *
 	 * Build the {@link BulkProcessor}.
 	 *
 	 * <p>Note: this is exposed for testing purposes.
@@ -357,6 +373,7 @@ public abstract class ElasticsearchSinkBase<T, C extends AutoCloseable> extends 
 		// This makes flush() blocking
 		bulkProcessorBuilder.setConcurrentRequests(0);
 
+		//设置刚才的 bulk 参数
 		if (bulkProcessorFlushMaxActions != null) {
 			bulkProcessorBuilder.setBulkActions(bulkProcessorFlushMaxActions);
 		}
@@ -370,6 +387,7 @@ public abstract class ElasticsearchSinkBase<T, C extends AutoCloseable> extends 
 		}
 
 		// if backoff retrying is disabled, bulkProcessorFlushBackoffPolicy will be null
+		//设置失败重试的参数配置
 		callBridge.configureBulkProcessorBackoff(bulkProcessorBuilder, bulkProcessorFlushBackoffPolicy);
 
 		return bulkProcessorBuilder.build();
@@ -387,12 +405,14 @@ public abstract class ElasticsearchSinkBase<T, C extends AutoCloseable> extends 
 		failureRequestIndexer.processBufferedRequests(requestIndexer);
 	}
 
+	//bulk 的监听
 	private class BulkProcessorListener implements BulkProcessor.Listener {
 		@Override
 		public void beforeBulk(long executionId, BulkRequest request) { }
 
 		@Override
 		public void afterBulk(long executionId, BulkRequest request, BulkResponse response) {
+			//判断 bulk 写入 es 的 response 是否有返回失败
 			if (response.hasFailures()) {
 				BulkItemResponse itemResponse;
 				Throwable failure;
@@ -407,6 +427,7 @@ public abstract class ElasticsearchSinkBase<T, C extends AutoCloseable> extends 
 
 							restStatus = itemResponse.getFailure().getStatus();
 							if (restStatus == null) {
+								//调用异常处理类的处理方式，如果是自定义了类实现 ActionRequestFailureHandler 的话，则会调用自己定义类里面的 onFailure 方法
 								failureHandler.onFailure(request.requests().get(i), failure, -1, failureRequestIndexer);
 							} else {
 								failureHandler.onFailure(request.requests().get(i), failure, restStatus.getStatus(), failureRequestIndexer);
@@ -421,6 +442,7 @@ public abstract class ElasticsearchSinkBase<T, C extends AutoCloseable> extends 
 			}
 
 			if (flushOnCheckpoint) {
+				//清 0
 				numPendingRequests.getAndAdd(-request.numberOfActions());
 			}
 		}
