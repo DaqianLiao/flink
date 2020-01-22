@@ -43,6 +43,7 @@ public class WordCountTable {
 		DataSet<WC> input = env.fromElements(
 				new WC("Hello", 1),
 				new WC("Ciao", 1),
+				new WC("Ciao", 1),
 				new WC("Hello", 1));
 
 		Table table = tEnv.fromDataSet(input);

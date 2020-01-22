@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -46,7 +46,8 @@ public class WordCountPojo {
 		private int frequency;
 
 		// constructors
-		public Word() {}
+		public Word() {
+		}
 
 		public Word(String word, int i) {
 			this.word = word;
@@ -101,14 +102,14 @@ public class WordCountPojo {
 		DataSet<Word> counts =
 			// split up the lines into Word objects (with frequency = 1)
 			text.flatMap(new Tokenizer())
-			// group by the field word and sum up the frequency
-			.groupBy("word")
-			.reduce(new ReduceFunction<Word>() {
-				@Override
-				public Word reduce(Word value1, Word value2) throws Exception {
-					return new Word(value1.word, value1.frequency + value2.frequency);
-				}
-			});
+				// group by the field word and sum up the frequency
+				.groupBy("word")
+				.reduce(new ReduceFunction<Word>() {
+					@Override
+					public Word reduce(Word value1, Word value2) throws Exception {
+						return new Word(value1.word, value1.frequency + value2.frequency);
+					}
+				});
 
 		if (params.has("output")) {
 			counts.writeAsText(params.get("output"), WriteMode.OVERWRITE);
